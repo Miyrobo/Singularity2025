@@ -38,7 +38,7 @@ class PID{
   int run(double a);  // 姿勢制御
   double stack = 0.0;  //積分量
  private:
-  float Kp = 3.0, Ki = 0.0, Kd = 1.0;  // PID制御係数
+  float Kp = 2.0, Ki = 0.0, Kd = 1.0;  // PID制御係数
   double b; //前回の値
   double da;  //変化量
   double v; //時間変化率

@@ -24,7 +24,7 @@
 
 
 #define NUM_balls 16
-#define NUM_lines 24
+#define NUM_lines 32
 
 class TIMER{
   public:
@@ -63,37 +63,36 @@ class LINE {
  public:
   bool isOnline = 0;   //ライン上か
   bool isHalfout = 0;  //半分以上外
+
+  int goalchance_count=0;
+
   int dir = 1000;//コートの方向
   int sdir=1000;             //
   int x, y;            //位置
   void get_value();    //値取得
-  int value[NUM_lines];
+  int value32[NUM_lines];
+  int value[4][NUM_lines / 4];
   void LEDset(int s);   //LED操作
   int value_angel[12];
-  int anfel_Num;//反応した個数
+
+  int Num_angel;//反応した個数 エンジェル
+  int Num_white; //反応した個数
 
   int mem_linedir;
 
   void get();
 
   void begin(){
-    for(int i=0;i<NUM_lines;i++){
+    for(int i=0;i<4;i++){
       pinMode(_pin[i],INPUT);
     }
   }
 
  private:
-  bool _LED = true;
-  const byte _pin[NUM_lines] = {41,40,39,
-                                47,48,49,
-                                42,43,44,
-                                32,33,34,
-                                53,52,37,38,50,51,45,46,35,36};
-  const byte x_line[6] = {3,4,5,11,10,9}; //右から左
-  const byte y_line[6] = {0,1,2,8,7,6};    //前から後
-  const byte angel_line[8] = {12,13,14,15,16,17,18,19}; //円　前からCW
-  const byte ledpin = 13;                 //LED制御ピン
-  int _th[NUM_lines]; //閾値 デジタルの場合不使用
+  bool _LED = true; //発光するか
+  byte _pin[4] = {A0,A1,A2,A3};
+  const byte ledpin = 13; //LED制御ピン
+  int _th[NUM_lines]; //閾値
 };
 
 class BNO {
@@ -103,6 +102,13 @@ class BNO {
   void get();
   void reset();
   double dir;
+
+  //キャリブレーション値の確認
+  void updateCalibration();
+  uint8_t cal_sys;
+  uint8_t cal_gyro;
+  uint8_t cal_accel;
+  uint8_t cal_mag;
 
  private:
   double dir0;

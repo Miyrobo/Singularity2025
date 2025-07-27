@@ -1,6 +1,6 @@
 #include "sensors.h"
 
-#include "pinsetup.h"
+#include "device.h"
 
 // HardwareSerial Serial_arduino(Serial2);   //サブマイコン用のUARTの番号
 
@@ -142,6 +142,10 @@ void BNO::reset() {  // 攻め方向リセット
   dir0 = ypr[0];
 }
 
+void BNO::updateCalibration() {
+  bno055.getCalibration(&cal_sys, &cal_gyro, &cal_accel, &cal_mag);
+}
+
 void LINE::get_value() {
   for (int i = 0; i < 8; i++) {
     if (i >= 4) {
@@ -159,12 +163,18 @@ void LINE::get_value() {
     } else {
       digitalWrite(Pin_MPA, 0);
     }
-    delayMicroseconds(500);
-    value[i] = analogRead(A0);
-    value[i+12] = analogRead(A1);
-    value[i+8] = analogRead(A2);
-    value[i+4] = analogRead(A3);
-    delayMicroseconds(100);
+    delayMicroseconds(1);
+    value32[i] = analogRead(A0);
+    value32[i+8] = analogRead(A1);
+    value32[i+16] = analogRead(A2);
+    value32[i+24] = analogRead(A3);
+    //delayMicroseconds(1);
+  }
+
+  for(int i=0;i<4;i++){
+    for(int j=0;j<8;j++){
+      value[i][j] = value32[i*8 + j];
+    }
   }
 }
 

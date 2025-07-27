@@ -1,5 +1,5 @@
 #include "move.h"
-#include "pinsetup.h"
+#include "device.h"
 
 void MOTOR::setup(){
   analogWriteResolution(8); // 8bit = 0〜255
