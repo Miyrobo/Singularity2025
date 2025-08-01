@@ -1,5 +1,5 @@
 #include "sensors.h"
-
+#include "Pins.h"
 #include "device.h"
 
 // HardwareSerial Serial_arduino(Serial2);   //サブマイコン用のUARTの番号
@@ -18,24 +18,24 @@ void BALL::get() {  // ボールの位置取得
 
   for (int i = 0; i < 8; i++) {
     if (i >= 4) {
-      digitalWrite(Pin_MPC, 1);
+      digitalWrite(Pin_MUX3, 1);
     } else {
-      digitalWrite(Pin_MPC, 0);
+      digitalWrite(Pin_MUX3, 0);
     }
     if (i % 4 >= 2) {
-      digitalWrite(Pin_MPB, 1);
+      digitalWrite(Pin_MUX2, 1);
     } else {
-      digitalWrite(Pin_MPB, 0);
+      digitalWrite(Pin_MUX2, 0);
     }
     if (i % 2 > 0) {
-      digitalWrite(Pin_MPA, 1);
+      digitalWrite(Pin_MUX1, 1);
     } else {
-      digitalWrite(Pin_MPA, 0);
+      digitalWrite(Pin_MUX1, 0);
     }
     //delayMicroseconds(1);
-    value[i]=analogRead(A17);
+    value[i]=analogRead(Pin_Ball1);
     total+=1023-value[i];
-    value[i+8]=analogRead(A16);
+    value[i+8]=analogRead(Pin_Ball2);
     total+=1023-value[i+8];
     //delayMicroseconds(1);
   }
@@ -150,19 +150,19 @@ void BNO::updateCalibration() {
 void LINE::get_value() {
   for (int i = 0; i < 8; i++) {
     if (i >= 4) {
-      digitalWrite(Pin_MPC, 1);
+      digitalWrite(Pin_MUX3, 1);
     } else {
-      digitalWrite(Pin_MPC, 0);
+      digitalWrite(Pin_MUX3, 0);
     }
     if (i % 4 >= 2) {
-      digitalWrite(Pin_MPB, 1);
+      digitalWrite(Pin_MUX2, 1);
     } else {
-      digitalWrite(Pin_MPB, 0);
+      digitalWrite(Pin_MUX2, 0);
     }
     if (i % 2 > 0) {
-      digitalWrite(Pin_MPA, 1);
+      digitalWrite(Pin_MUX1, 1);
     } else {
-      digitalWrite(Pin_MPA, 0);
+      digitalWrite(Pin_MUX1, 0);
     }
     delayMicroseconds(1);
     value32[i] = analogRead(A0);
@@ -295,6 +295,47 @@ void CAMERA::set_color(int c){
 
 void CAMERA::begin(){
   OPENMV.begin(9600);
+}
+
+
+PUSHSWITCH::PUSHSWITCH(int pinno) {
+  pin = pinno;
+  pinMode(pin, INPUT);
+}
+
+void PUSHSWITCH::update() {
+  bool currentRead = read();
+
+  if (currentRead != lastReadState) {
+    lastDebounceTime = millis();  // 状態が変化 → タイマーリセット
+  }
+
+  if ((millis() - lastDebounceTime) >= debounceDelay) {
+    if (currentRead != lastStableState) {
+      lastStableState = currentRead;  // 状態確定
+    }
+  }
+
+  lastReadState = currentRead;
+}
+
+bool PUSHSWITCH::read() {
+  return digitalRead(pin);
+}
+
+bool PUSHSWITCH::pushed() {
+  update();
+
+  if (lastReportedState == 1 && lastStableState == 0) {
+    lastReportedState = 0;
+    return true;  // 押された瞬間
+  }
+
+  if (lastStableState == 1) {
+    lastReportedState = 1;
+  }
+
+  return false;
 }
 
 // Created with the help of ChatGPT (OpenAI) - 2025/07/20

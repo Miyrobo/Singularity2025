@@ -22,6 +22,9 @@ MOVE move;
 CAMERA openmv;
 PID pid;
 LINE line;
+PUSHSWITCH sw1(Pin_S1);
+PUSHSWITCH sw2(Pin_S2);
+PUSHSWITCH sw3(Pin_S3);
 
 
 TIMER timer[20];
@@ -48,9 +51,9 @@ int line_th[32];
 
 void setup() {
   //ピン設定
-  pinMode(Pin_MPA, OUTPUT);
-  pinMode(Pin_MPB, OUTPUT);
-  pinMode(Pin_MPC, OUTPUT);
+  pinMode(Pin_MUX1, OUTPUT);
+  pinMode(Pin_MUX2, OUTPUT);
+  pinMode(Pin_MUX3, OUTPUT);
 
   pinMode(Pin_kicker, OUTPUT);
 
@@ -82,7 +85,7 @@ void setup() {
   motor.setup();
   openmv.begin();
   Display_Singularityinit();
-  analogReadAveraging(1);
+  analogReadAveraging(10);
 
   Serial.begin(9600);
   Serial5.begin(115200);
@@ -715,6 +718,8 @@ void loop() {
   motor.pwm_out();
 
 }
+
+//-----------------------------------------------------------------------------------------------------------------------
 //メインループここまで
 
 
@@ -745,21 +750,17 @@ void sensormonitor() {
     kicker(0);
     display.setTextSize(2);
 
-    if (SW1) {
+    if (sw1.pushed()) {
       tone(buzzer, 1077, 100);
       mode++;
       if (mode > MODE_MAX) {
         mode = 0;
       }
-      delay(100);
-      while (SW1)
-        ;
+
     }
-    if (SW3) {
+    if (sw3.pushed()) {
       tone(buzzer, 2000, 100);
       gyro.reset();
-      while (SW3)
-        ;
     }
 
     if (mode == 0) {  // ボールモニター
@@ -977,19 +978,19 @@ void sensormonitor() {
           int line[4][8] = {0};
           for (int i = 0; i < 8; i++) {
             if (i >= 4) {
-              digitalWrite(Pin_MPC, 1);
+              digitalWrite(Pin_MUX3, 1);
             } else {
-              digitalWrite(Pin_MPC, 0);
+              digitalWrite(Pin_MUX3, 0);
             }
             if (i % 4 >= 2) {
-              digitalWrite(Pin_MPB, 1);
+              digitalWrite(Pin_MUX2, 1);
             } else {
-              digitalWrite(Pin_MPB, 0);
+              digitalWrite(Pin_MUX2, 0);
             }
             if (i % 2 > 0) {
-              digitalWrite(Pin_MPA, 1);
+              digitalWrite(Pin_MUX1, 1);
             } else {
-              digitalWrite(Pin_MPA, 0);
+              digitalWrite(Pin_MUX1, 0);
             }
             delayMicroseconds(500);
             line[0][i] = analogRead(A0);
@@ -1018,19 +1019,19 @@ void sensormonitor() {
           int line[4][8] = {0};
           for (int i = 0; i < 8; i++) {
             if (i >= 4) {
-              digitalWrite(Pin_MPC, 1);
+              digitalWrite(Pin_MUX3, 1);
             } else {
-              digitalWrite(Pin_MPC, 0);
+              digitalWrite(Pin_MUX3, 0);
             }
             if (i % 4 >= 2) {
-              digitalWrite(Pin_MPB, 1);
+              digitalWrite(Pin_MUX2, 1);
             } else {
-              digitalWrite(Pin_MPB, 0);
+              digitalWrite(Pin_MUX2, 0);
             }
             if (i % 2 > 0) {
-              digitalWrite(Pin_MPA, 1);
+              digitalWrite(Pin_MUX1, 1);
             } else {
-              digitalWrite(Pin_MPA, 0);
+              digitalWrite(Pin_MUX1, 0);
             }
             delayMicroseconds(500);
             line[0][i] = analogRead(A0);

@@ -1,16 +1,10 @@
 #ifndef DEVICE_H
 #define DEVICE_H
+#include "Pins.h"
 #include "Arduino.h"
 #include "sensors.h"
 #include "move.h"
 
-#define Pin_MPA A18 //マルチプレクサ
-#define Pin_MPB A19
-#define Pin_MPC A20
-
-#define Pin_kicker 2
-
-#define buzzer 30 //ブザー
 
 
 // センサー関連まとめ

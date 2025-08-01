@@ -7,12 +7,8 @@
 #include "Arduino.h"
 #include "Wire.h"
 #include "SPI.h"
+#include "Pins.h"
 
-#define Pin_S1 11
-#define Pin_S2 12
-#define Pin_S3 24
-
-#define Pin_TS 21
 
 #define SW1 !digitalRead(Pin_S1)
 #define SW2 !digitalRead(Pin_S2)
@@ -54,8 +50,7 @@ class BALL {
   bool isExist;   //ボールがあるか
   int total; //合計
  private:
-  const byte pin[NUM_balls] = {A0,A1,A3,A5,A7,A9,A11,A13,A15,A14,A12,A10,A8,A6,A4,A2};  //ピン番号
-  //const byte pin[NUM_balls] = {A0,A2,A4,A6,A8,A10,A12,A14,A15,A13,A11,A9,A7,A5,A3,A1};  //ピン番号
+  const byte pin[NUM_balls] = {Pin_Ball1,Pin_Ball2};  //ピン番号
   const int _th = 800;      //反応限界
 };
 
@@ -164,6 +159,25 @@ class CAMERA{
 
 
 
+// 押しボタン用クラス
+class PUSHSWITCH {
+private:
+  int pin;
+  bool state = 0;
+  bool lastStableState = 0;
+  bool lastReadState = 0;
+  unsigned long lastDebounceTime = 0;
+  const unsigned long debounceDelay = 0; // ms
+  bool lastReportedState = 1;
+
+  void update();
+
+public:
+  PUSHSWITCH(int pinno);
+
+  bool read();    // 安定化された現在の状態を返す
+  bool pushed();  // 押された瞬間（エッジ）を検出
+};
 
 int findLongestZeroGapWithAngle(int arr[12], float &centerAngleDeg,int &MAX);
 
