@@ -75,10 +75,11 @@ void BALL::get() {  // ボールの位置取得
       if(abs(maxn-i)<=2 || abs(maxn-i)>=14){ //最大 & 2つ隣まで
         x+=(SIN16_1000[i%16] * ((double)value[i%16] / 1000.0));
         y+=(SIN16_1000[(i + 4) % 16] * ((double)value[i%16] / 1000.0));
-        distance+=(value[i%16] > _th ? 0 : _th-value[i%16]);
+        if(maxn==i);
+          distance+=(value[i%16] > _th ? 0 : _th-value[i%16]); //最大のセンサで距離を求める
       }
     }
-    distance-=1500;
+    //distance-=1500;
     if(distance<0)distance=0;
 
     dir = atan2(x,y) * 57.3;
@@ -265,6 +266,7 @@ void CAMERA::getorangeball(){
         orangeY = OPENMV.read()-60;
         orangeDetected = true;
         orangedir = atan2(orangeX, orangeY) * 57.3;
+        orangedistance = sqrt(orangeX*orangeX + orangeY*orangeY);
         ocount=0; //カウントリセット
         break;  // ループから抜ける
     }

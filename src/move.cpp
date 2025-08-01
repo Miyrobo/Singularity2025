@@ -72,25 +72,29 @@ void MOTOR::set_power(int m1, int m2, int m3, int m4) {
 }
 
 void MOVE::carryball(int balldir,int balldistance) {
-  if (balldir <= 5 && balldir >= -5 || (abs(balldir)<=10 && balldistance < 1000)) {
+  if (balldir <= 5 && balldir >= -5) {
     this->dir = 0;
   }else if(balldir <= 15 && balldir >= -15){
-    this->dir = balldir;
+    if(balldir>0){
+      this->dir = balldir + 10;
+    }else{
+      this->dir = balldir - 10;
+    }
   } else {
     int a;
-    int distance_th =1200;
+    int distance_th =3000;
     if (balldir <= 30 && balldir >= -30) {
-      if(balldistance<distance_th){
+      if(balldistance < distance_th){
         a = 50;
         this->speed = 40;
       }else a=15;
     } else if (balldir <= 60 && balldir >= -60) {
-      if(balldistance<distance_th){
+      if(balldistance < distance_th){
         a = 60;
         this->speed=40;
       }else a=30;
     } else {
-      a = 90;
+      a = 80;
       if(balldistance>=distance_th)a=45;
     }
     if (balldir > 0) {

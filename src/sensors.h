@@ -150,6 +150,7 @@ class CAMERA{
     int orangeX = -1;  // オレンジ色のx座標
     int orangeY = -1;  // オレンジ色のy座標
     int orangedir;
+    int orangedistance;
     bool orangeDetected = false; // 検出フラグ
 
     int ocount=0;//見失ってからのカウント

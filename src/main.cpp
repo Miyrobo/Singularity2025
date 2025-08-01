@@ -10,7 +10,9 @@
 
 #define MAX_Speed 100
 
+void dinogame();
 
+int WirelessControl=0;
 
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
 #define SCREEN_HEIGHT 64  // OLED display height, in pixels
@@ -27,12 +29,15 @@ ULTRASONIC ping;
 MOVE move;
 CAMERA openmv;
 PID pid;
+LINE line;
 
 TIMER timer[20];
 TIMER linetim;
 TIMER pingset;
 
-LINE line;
+//構造体にロボットの状態をまとめる
+Sensors sensors{ball, gyro, ping, openmv, line};
+Actuator act{motor, move, pid};
 
 TIMER timfps;
 int fps=0;
@@ -93,12 +98,14 @@ void setup() {
   analogReadAveraging(5);
 
   Serial.begin(9600);
+  Serial5.begin(115200);
 
   motor.stop();
   motor.pwm_out();
-
+  if(Serial){
+    tone(buzzer, 3000, 120);
+  }
   gyro.setup();
-
 
 
   for (int i = 0; i < 32; i++) {
@@ -108,6 +115,7 @@ void setup() {
   hold_th = EEPROM.read(34);
 
   timer[0].reset();
+  if(SW1)dinogame();
   //起動音
   tone(buzzer, 2714, 120);
   int i = 0;
@@ -136,9 +144,13 @@ void setup() {
     ;
 }
 
+bool WirelessStop=false;
+
 //#define kadodassyutu//2025/6/22
 TIMER timer_lift; //持ち上げ検出タイマ
 void loop() {
+  
+  int speed = MAX_Speed;
   fps++;
   if(timfps.get()>1000){ //1秒間の処理速度表示
     display.clearDisplay();
@@ -204,6 +216,37 @@ void loop() {
   openmv.getorangeball();
   ball.dir=openmv.orangedir;
   ball.isExist=openmv.orangeDetected;
+  if(openmv.orangeDetected){
+    if(openmv.orangedistance > 40)ball.distance=5000;
+    else ball.distance = 500;
+
+    // if(openmv.orangedistance < 40)speed=60;
+    // if(openmv.orangedistance < 35)speed=40;
+    // if(openmv.orangedistance < 30)speed=34;
+    // if(openmv.orangedistance < 26){
+    //   TIMER tim12;
+    //   tim12.reset();
+    //   while(tim12.get()<2000){
+    //     openmv.getorangeball();
+    //     speed=0;
+    //     dir_move=80;
+    //     motor.cal_power(dir_move,60,openmv.orangedir);
+    //     motor.pwm_out();
+    //     if(!openmv.orangeDetected || openmv.orangedistance>30)break;
+    //   }
+    //   tim12.reset();
+    //   while(tim12.get()<500){
+    //     openmv.getorangeball();
+    //     speed=0;
+    //     dir_move=0;
+    //     motor.cal_power(dir_move,80,0);
+    //     motor.pwm_out();
+    //     if(!openmv.orangeDetected || openmv.orangedistance>30)break;
+    //   }
+      
+      
+    //}
+  }
   if(!ball.isExist)
     ball.get();
 
@@ -235,9 +278,9 @@ void loop() {
     dir_move = 1000;
     // motor.cal_power(0, 0, -gyro.dir / 2);
   }
-  int speed = MAX_Speed;
+  
 
-  if(timer[13].get()>100){ //ボールが見えずに0.1秒経過
+  if(timer[13].get()>100 && 0){ //ボールが見えずに0.1秒経過
     // ping.get(0); //左
     // ping.get(1); //右
     // ping.get(2);
@@ -274,8 +317,8 @@ void loop() {
   //   motor.stop();
   // }
   
-  if(abs(ball.dir)<15 && line.goalchance_count<240)line.goalchance_count++;
-  line.goalchance_count=0; //昨日無効化
+  if(abs(ball.dir)<15 && line.goalchance_count<0)line.goalchance_count++;
+  //line.goalchance_count=0; //機能無効化
   if (dir_move != 1000 && 1) { //ライン十字部分処理
     if (line_s[0]) {
       if(abs(ball.dir)<20 && ball.distance < 1500){
@@ -302,7 +345,7 @@ void loop() {
           dir_move = -90;
         }
       }
-      if(line.goalchance_count > 250){
+      if(line.goalchance_count > 600){
         move.carryball(ball.dir);
         dir_move=move.dir;
         speed=50;
@@ -567,33 +610,24 @@ void loop() {
     line.mem_linedir=1000;
   }
   if(line.dir!=1000){
-    if(abs(ball.dir)<20 && !(line.isHalfout && line.Num_angel<1) && line.goalchance_count > 250){
+    if(abs(ball.dir)<20 && !(line.isHalfout && line.Num_angel<1) && line.goalchance_count > 600){
       move.carryball(ball.dir);
       z=move.dir;
       speed=50; //ゴールまであと少し押し込み
     }else
       z=-line.dir-gyro.dir;
       if(line.isHalfout && line.Num_angel<1) line.goalchance_count=-250;
+  }else{
+    z=-1; //すべてのエンジェルが反応なし
   }
 
   //エンジェルライン処理ここまで
 
 
   if (z != -1 && TS) {
-    if(abs((z-dir_move+360+180)%360)<90 && line.isHalfout) //回避方向と進行方向が逆なら減速
+    if(abs((z-dir_move+360+180)%360)<90 && !line.isHalfout) //回避方向と進行方向が逆なら減速
       speed=50;
-    // if(abs((z-dir_move+360+180)%360)<45 && line.isHalfout){ //回避方向と進行方向が逆
-    //   z=1000;//停止
-    //   motor.cal_power(z, speed, pid.run(gyro.dir));
-    // }else if(abs((z-dir_move+360+90)%360)<45 && line.isHalfout){ //回避方向と進行方向
-    //   z+=90;
-    //   motor.cal_power(z, speed, pid.run(gyro.dir));
-    // }else if(abs((z-dir_move+360+270)%360)<45 && line.isHalfout){ //回避方向と進行方向
-    //   z+=270;
-    //   motor.cal_power(z, speed, pid.run(gyro.dir));
-    // }else{
-    //   //なにもしない
-    // 
+    
     if(line.isHalfout)speed=80;
     motor.cal_power(z, speed, pid.run(gyro.dir));
     //motor.pwm_out();
@@ -602,43 +636,15 @@ void loop() {
   if(line_s[0] || line_s[1] || line_s[2] || line_s[3]){ //どれかのセンサーが反応
     timer[16].reset();
   }
-  if (linetim.get() > 20) {
-    if (!line_n[0] && !line_n[1] && !line_n[2] && !line_n[3]) z = -1;
-  }
-  if (z == 0 && linetim.get() > 5) {
-    if (!line_n[0] && !line_n[1] && !line_n[2] && !line_n[3] && line_s[0]) {
-      z = -1;
-    }
-  }
-  if (z == 1 && linetim.get() > 5) {
-    if (!line_n[0] && !line_n[1] && !line_n[2] && !line_n[3] && line_s[1]) {
-      z = -1;
-    }
-  }
-  if (z == 2 && linetim.get() > 5) {
-    if (!line_n[0] && !line_n[1] && !line_n[2] && !line_n[3] && line_s[2]) {
-      z = -1;
-    }
-  }
-  if (z == 3 && linetim.get() > 5) {
-    if (!line_n[0] && !line_n[1] && !line_n[2] && !line_n[3] && line_s[3]) {
-      z = -1;
-    }
-  }
+
 
   if (!TS) {
     motor.stop();
   }
 
-  // if (analogRead(Pin_ballcatch) > hold_th) { //もう一つの処理に統合
-  //   timer[7].reset();
-  // } else {
-  //   // if(line_s[0]){ //角判定
-  //   //   timer[0].reset();
-  //   // }
-  // }
+
   if (timer[7].get() > 100 && !kick && timer[9].get() > 600 && abs(ball.dir) <15 &&
-      abs(gyro.dir - kickdir) < 10) {  //キックする条件
+      abs(gyro.dir - kickdir) < 10 && !WirelessStop) {  //キックする条件
     kicker(1);
     timer[8].reset();
     kick = 1;
@@ -650,9 +656,9 @@ void loop() {
     kick = 0;
     timer[9].reset();
   }
-  if(gyro.ypr[2] < -6){
+  if(abs(gyro.ypr[2]) > 6 || abs(gyro.ypr[1])>10){
     digitalWrite(13, LOW);
-    timer_lift.reset();
+    timer_lift.reset(); //持ち上げ検知タイマーリセット
   }else{
     digitalWrite(13, HIGH);
   }
@@ -662,6 +668,62 @@ void loop() {
   } else {
     
   }
+
+  if(WirelessStop)motor.stop();
+  int c=Serial5.read();
+
+  if(c=='1'){
+    WirelessControl=0;
+    WirelessStop=false;
+    tone(buzzer, 800, 80);  // 高めの音で素早く鳴らす
+    delay(90);              // 音の終了を待ってすぐスタート
+  }else if(c=='2'){
+    WirelessStop=true;
+    WirelessControl=0;
+    motor.stop();
+    motor.pwm_out();
+    tone(buzzer, 800, 100); delay(120);
+    tone(buzzer, 600, 100); delay(120);
+    tone(buzzer, 400, 100); delay(120);
+  }else if(c=='f'){
+    if(WirelessControl==1)WirelessControl=0;
+    else WirelessControl=1;
+  }else if(c=='r'){
+    if(WirelessControl==2)WirelessControl=0;
+    else WirelessControl=2;
+  }else if(c=='l'){
+    if(WirelessControl==4)WirelessControl=0;
+    else WirelessControl=4;
+  }else if(c=='b'){
+    if(WirelessControl==3)WirelessControl=0;
+    else WirelessControl=3;
+  }else if(c=='c'){
+    if(WirelessControl==5)WirelessControl=0;
+    else WirelessControl=5;
+  }else if(c=='u'){
+    if(WirelessControl==6)WirelessControl=0;
+    else WirelessControl=6;
+  }
+  switch (WirelessControl)
+  {
+  case 1:
+    motor.cal_power(0,60); break;
+  case 2:
+    motor.cal_power(90,60); break;
+  case 3:
+    motor.cal_power(180,60); break;
+  case 4:
+    motor.cal_power(-90,60); break;
+  case 5:
+    motor.cal_power(0,0,20); break;
+  case 6:
+    motor.cal_power(0,0,-20); break;
+  default:
+    break;
+  }
+  //Serial5.print("ball = ");
+  Serial5.println(ball.dir);
+  
 
   motor.pwm_out();
 
@@ -676,6 +738,10 @@ void sensormonitor() {
   display.setTextSize(2);
   if(!TS){
   while (!TS) {
+    if(Serial5.available()){
+    Serial.write(Serial5.read());
+    //tone(buzzer,1000,1);
+    }
     //digitalWrite(13, HIGH);
     gyro.get();
     if (gyro.ypr[2] < -5 && mode!=1) {
@@ -711,6 +777,8 @@ void sensormonitor() {
 
     if (mode == 0) {  // ボールモニター
       ball.get();
+      //Serial5.print("Singularity ball=");
+      Serial5.println(ball.dir);
       display.clearDisplay();
       int SCALE = 15;
       for (int i = 0; i < 16; i++) {
@@ -1035,7 +1103,9 @@ void sensormonitor() {
       openmv.getorangeball();
       display.println(openmv.orangeX);
       display.println(openmv.orangeY);
-      display.println(openmv.orangedir);
+      display.print(openmv.orangedir);
+      display.print("  ");
+      display.print(openmv.orangedistance);
 
       
       display.display();
@@ -1060,3 +1130,392 @@ void sensormonitor() {
 }
 
 
+//--------------------------------------
+/////////////////////////////////////////////////////////////////////////////////////////////
+//dinogame
+
+
+#pragma once
+
+
+const unsigned char bitmap_dino[] PROGMEM = {
+  B00000000, B00000001, B11111111, B11000000,
+  B00000000, B00000011, B11111111, B11000000,
+  B00000000, B00000011, B10111111, B11100000,
+  B00000000, B00000011, B10111111, B11100000,
+  B00000000, B00000011, B11111111, B11100000,
+  B00000000, B00000011, B11111111, B11100000,
+  B00000000, B00000011, B11111111, B11100000,
+  B00000000, B00000011, B11111011, B11100000,
+  B00000000, B00000011, B11111000, B00000000,
+  B00000000, B00000011, B11111111, B10000000,
+  B00000000, B00000011, B11100000, B00000000,
+  B10000000, B00000111, B11100000, B00000000,
+  B10000000, B00011111, B11100000, B00000000,
+  B11100000, B01111111, B11111100, B00000000,
+  B11100000, B11111111, B11111100, B00000000,
+  B11110001, B11111111, B11100100, B00000000,
+  B11111111, B11111111, B11100000, B00000000,
+  B11111111, B11111111, B11100000, B00000000,
+  B11111111, B11111111, B11100000, B00000000,
+  B01111111, B11111111, B11100000, B00000000,
+  B00011111, B11111111, B11000000, B00000000,
+  B00011111, B11111111, B11000000, B00000000,
+  B00001111, B11111111, B10000000, B00000000,
+  B00000011, B11111110, B00000000, B00000000,
+  B00000001, B11100011, B10000000, B00000000,
+  B00000001, B11100011, B10000000, B00000000,
+  B00000001, B11000000, B00000000, B00000000,
+  B00000001, B00000000, B00000000, B00000000,
+  B00000001, B10000000, B00000000, B00000000,
+  B00000001, B11000000, B00000000, B00000000
+};
+
+/**
+   Made with Marlin Bitmap Converter
+   https://marlinfw.org/tools/u8glib/converter.html
+
+   This bitmap from the file 'dinomini2.png'
+*/
+/**
+   Made with Marlin Bitmap Converter
+   https://marlinfw.org/tools/u8glib/converter.html
+
+   This bitmap from the file 'dinomini2.png'
+*/
+#pragma once
+
+const unsigned char bitmap_dino2[] PROGMEM = {
+  B00000000, B00000001, B11111111, B11000000,
+  B00000000, B00000011, B11111111, B11000000,
+  B00000000, B00000011, B10111111, B11100000,
+  B00000000, B00000011, B10111111, B11100000,
+  B00000000, B00000011, B11111111, B11100000,
+  B00000000, B00000011, B11111111, B11100000,
+  B00000000, B00000011, B11111111, B11100000,
+  B00000000, B00000011, B11111011, B11100000,
+  B00000000, B00000011, B11111000, B00000000,
+  B00000000, B00000011, B11111111, B10000000,
+  B00000000, B00000011, B11100000, B00000000,
+  B10000000, B00000111, B11100000, B00000000,
+  B10000000, B00011111, B11100000, B00000000,
+  B11100000, B01111111, B11111100, B00000000,
+  B11100000, B11111111, B11111100, B00000000,
+  B11110001, B11111111, B11100100, B00000000,
+  B11111111, B11111111, B11100000, B00000000,
+  B11111111, B11111111, B11100000, B00000000,
+  B11111111, B11111111, B11100000, B00000000,
+  B01111111, B11111111, B11100000, B00000000,
+  B00011111, B11111111, B11000000, B00000000,
+  B00011111, B11111111, B11000000, B00000000,
+  B00001111, B11111111, B00000000, B00000000,
+  B00000011, B11111110, B00000000, B00000000,
+  B00000001, B11001110, B00000000, B00000000,
+  B00000001, B10000110, B00000000, B00000000,
+  B00000000, B11100010, B00000000, B00000000,
+  B00000000, B00000010, B00000000, B00000000,
+  B00000000, B00000010, B00000000, B00000000,
+  B00000000, B00000011, B00000000, B00000000
+};
+
+
+
+
+#pragma once
+
+const unsigned char bitmap_sabo[] PROGMEM = {
+  B00001100, B00000000,
+  B00011100, B00000000,
+  B00011100, B00000000,
+  B00011100, B00000000,
+  B00011100, B10000000,
+  B11011100, B11000000,
+  B11011100, B11000000,
+  B11011100, B11000000,
+  B11011100, B11000000,
+  B11011100, B11000000,
+  B11001100, B11000000,
+  B11111111, B10000000,
+  B01111111, B00000000,
+  B00011100, B00000000,
+  B00011100, B00000000,
+  B00011100, B00000000,
+  B00011100, B00000000,
+  B00011100, B00000000,
+  B00011100, B00000000,
+  B00011100, B00000000
+};
+
+
+#define MAXSPEED 13
+#define JUMPpower 7
+
+double y;
+int jump = 0;
+int a = 0;
+
+int oy[20];
+int ox[20];
+int n = 0;
+
+int wx[10];
+int wn = 0;
+
+int co = 0;
+int score;
+int gamespeed = 7;
+int hi;
+int dinocos = 0;
+
+void reset() {
+  randomSeed(analogRead(A9));
+  co = 0;
+  n = 0;
+  y = 34;
+  wn = 0;
+  a = 0;
+  jump = 0;
+  y = 34;
+  score = 0;
+  gamespeed = 6;
+}
+
+TIMER timer_dino;
+
+void gameover() {
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(5, 15);
+  display.print("GAME OVER");
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(65, 0);
+  display.print("score:");
+  display.setCursor(100, 0);
+  display.print(score);
+  display.display();
+
+  display.setCursor(0, 0);
+  display.print("HI:");
+  display.setCursor(20, 0);
+  hi = EEPROM.read(100) * 256 + EEPROM.read(101);
+  if (score > hi) {
+    hi = score;
+    EEPROM.write(100, int(score / 256));
+    EEPROM.write(101, int(score % 256));
+  }
+  display.print(hi);
+  display.display();
+  tone(buzzer, 255, 50);
+  delay(100);
+  tone(buzzer, 255, 50);
+  delay(50);
+  while (!SW1 && !SW2 && !SW3);
+  if (SW1) {
+    while (SW1);
+    //standby();
+  }
+  delay(200);
+  if (!SW2 == 0 && !SW1 == 0) {
+    timer_dino.reset();
+    while (timer_dino.get() <= 3000 || !(!SW2 == 0 && !SW1 == 0)) {
+      ;
+    }
+    if (timer_dino.get() > 3000) {
+      display.clearDisplay();
+      display.setTextSize(2);
+      display.setTextColor(WHITE);
+      display.setCursor(5, 15);
+      display.print("PASSWARD");
+      display.display();
+      while (!SW2 == 0 || !SW1 == 0);
+      delay(100);
+      while (!SW2 && !SW1);
+      tone(buzzer, 1600, 50);
+      if (!SW2 == 0) {
+        while (!SW2 == 0 || !SW1 == 0);
+        delay(100);
+        while (!SW2 == 1 && !SW1 == 1);
+        tone(buzzer, 1600, 50);
+        if (!SW2 == 0) {
+          while (!SW2 == 0 || !SW1 == 0);
+          delay(100);
+          while (!SW2 == 1 && !SW1 == 1);
+          tone(buzzer, 1600, 50);
+          if (!SW1 == 0) {
+            while (!SW2 == 0 || !SW1 == 0);
+            delay(100);
+            display.clearDisplay();
+            display.setTextSize(2);
+            display.setTextColor(WHITE);
+            display.setCursor(5, 15);
+            display.print("CLEAR DATA");
+            display.setCursor(5, 40);
+            display.print("NO");
+            display.setCursor(85, 40);
+            display.print("YES");
+            display.display();
+            while (!SW2 == 1 && !SW1 == 1);
+            if (!SW2 == 0) {
+              EEPROM.write(100, 0);
+              EEPROM.write(101, 0);
+              tone(buzzer, 2000, 100);
+              display.clearDisplay();
+              display.setTextSize(2);
+              display.setTextColor(WHITE);
+              display.setCursor(5, 15);
+              display.print("CLEAR DATA");
+              display.setCursor(20, 45);
+              display.print("FINISH");
+              display.display();
+              delay(500);
+
+            }
+          }
+        }
+      }
+    }
+  }
+  reset();
+}
+
+
+void dinogame()
+{
+  reset();
+  while (1) {
+    int nn;
+    int rr;
+    if ((SW2  || SW3) && jump == 0) {
+      a = -JUMPpower;
+      jump = 1;
+      tone(buzzer, 600, 50);
+    }
+
+    y += a;
+    display.clearDisplay();
+    if (dinocos % 4 < 2) {
+      display.drawBitmap(0, y, bitmap_dino, 27, 30, WHITE);
+    } else {
+      display.drawBitmap(0, y, bitmap_dino2, 27, 30, WHITE);
+    }
+    if (y == 34)dinocos++;
+    display.drawLine(0, 62, 128, 62, WHITE);
+
+    int l = random(0, 3);
+    if (l == 0) {
+      ox[n] = 128;
+      oy[n] = random(62, 66);
+      n++;
+    }
+    if (score > 2000) {
+      nn = 18;
+    }
+    else if (score > 1000) {
+      nn = 22;
+    } else {
+      nn = 25;
+    }
+    if (score % 500 == 0 && gamespeed < MAXSPEED)
+      gamespeed++;
+
+    if (score > 2000) {
+      rr = 40;
+    } else if (score > 1500) {
+      rr = 30;
+    } else if (score > 500) {
+      rr = 35;
+    } else {
+      rr = 40;
+    }
+    int r = random(0, rr - co);
+    if (r == 0 && co > nn) {
+      wx[wn] = 128;
+      wn++;
+      co = 0;
+      r = random(0, 3);
+      if (r == 0) {
+        wx[wn] = 138;
+        wn++;
+      }
+      r = random(0, 4);
+      if (r == 0 && score > 250) {
+        wx[wn] = 148;
+        wn++;
+      }
+      r = random(0, 5);
+      if (r == 0 && score > 750) {
+        wx[wn] = 158;
+        wn++;
+      }
+      r = random(0, 3);
+      if (r == 0 && score > 2500) {
+        wx[wn] = 168;
+        wn++;
+      }
+    }
+
+
+    co++;
+
+    for (int i = 0; i < n; i++) {
+      ox[i] -= gamespeed;
+      display.fillRect(ox[i], oy[i], 3, 1, WHITE);
+
+    }
+
+    if (ox[0] <= 0 && n > 0) {
+      for (int i = 1; i < n; i++) {
+        ox[i - 1] = ox[i];
+        oy[i - 1] = oy[i];
+      }
+      n--;
+    }
+
+    for (int i = 0; i < wn; i++) {
+      //display.fillRect(wx[i],62-20,10,20,WHITE);
+      wx[i] -= gamespeed;
+      display.drawBitmap(wx[i], 62 - 20, bitmap_sabo, 10, 20, WHITE);
+
+    }
+
+    if (wx[0] <= -5 && wn > 0) {
+      for (int i = 1; i < wn; i++) {
+        wx[i - 1] = wx[i];
+      }
+      wn--;
+    }
+
+
+    if (wn != 0 && wx[0] < 20 && y > 15) {
+      gameover();
+    }
+    if (wn > 1 && wx[1] < 20 && y > 15) {
+      gameover();
+    }
+    if (wn > 2 && wx[2] < 20 && y > 15) {
+      gameover();
+    }
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(65, 0);
+    display.print("score:");
+    display.setCursor(100, 0);
+    display.print(score);
+
+    display.display();
+    //delay(1);
+
+    if (a == JUMPpower) {
+      a = 0;
+      jump = 0;
+    }
+    if (jump != 0) {
+      a++;
+    }
+
+    score += 1;
+
+    delay(10);
+  }
+}
