@@ -355,11 +355,6 @@ void LINE::avoid(Sensors& c_sensors,Actuator& c_act) {  // ライン回避
             dir_move=1000;
           }
         }
-        #ifdef kadodassyutu
-          if(ping.value[0]<450){
-            dir_move = 0;
-          }
-        #endif
       }
     }
     if (depth[2]) {
@@ -456,11 +451,6 @@ void LINE::avoid(Sensors& c_sensors,Actuator& c_act) {  // ライン回避
             dir_move=1000;
           }
         }
-        #ifdef kadodassyutu
-          if(ping.value[1]<450){
-            dir_move = 0;
-          }
-        #endif
       }
     }
   }

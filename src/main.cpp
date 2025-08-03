@@ -97,10 +97,10 @@ void setup() {
 
 bool WirelessStop=false;
 
-//#define kadodassyutu//2025/6/22
 TIMER timer_lift; //持ち上げ検出タイマ
 
 //========================================================================================================================
+//ここからサッカーメインプログラム
 void loop() {
   
   move.speed = MAX_Speed;
@@ -312,13 +312,13 @@ void sensormonitor() {
   display.setTextSize(2);
   if(!TS){
   while (!TS) {
-    if(Serial5.available()){
-    Serial.write(Serial5.read());
+    if(ESP32_UART.available()){
+    Serial.write(ESP32_UART.read());
     //tone(buzzer,1000,1);
     }
     //digitalWrite(13, HIGH);
     gyro.get();
-    if (gyro.ypr[2] < -5 && mode!=1) {
+    if (abs(gyro.ypr[2]) > 6 || abs(gyro.ypr[1])>10 && mode!=1) {
       digitalWrite(13, LOW);
     } else {
       digitalWrite(13, HIGH);
@@ -347,8 +347,8 @@ void sensormonitor() {
 
     if (mode == 0) {  // ボールモニター
       ball.get();
-      //Serial5.print("Singularity ball=");
-      Serial5.println(ball.dir);
+      //ESP32_UART.print("Singularity ball=");
+      ESP32_UART.println(ball.dir);
       display.clearDisplay();
       int SCALE = 15;
       for (int i = 0; i < 16; i++) {
