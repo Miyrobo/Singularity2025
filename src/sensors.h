@@ -8,6 +8,11 @@
 #include "Wire.h"
 #include "SPI.h"
 #include "Pins.h"
+//#inclue "device.h" は相互依存のためできない
+
+#pragma once
+struct Actuator; // 構造体 Actuator の前方宣言
+struct Sensors;
 
 
 #define SW1 !digitalRead(Pin_S1)
@@ -54,38 +59,47 @@ class BALL {
 
 class LINE {
  public:
+  LINE();
+  //状態変数
   bool isOnline = 0;   //ライン上か
   bool isHalfout = 0;  //半分以上外
-
-  int goalchance_count=0;
-
-  int dir = 1000;//コートの方向
-  int sdir=1000;             //
+  int dir = 1000;               //コートの方向
+  int rawdir=1000;             //センサー生データ　方向
+  int sdir=1000;             //センサ生データ+傾き
   int x, y;            //位置
-  void get_value();    //値取得
+  int depth[4]; //どこまで深く侵入したか 0:反応なし, 5:エンジェル反応
+  int s[4][NUM_lines / 4]; //反応あり→1, 反応なし→0
+  int s_angel[12];
   int value32[NUM_lines];
   int value[4][NUM_lines / 4];
-  void LEDset(int s);   //LED操作
   int value_angel[12];
-
   int Num_angel;//反応した個数 エンジェル
   int Num_white; //反応した個数
 
+  int lmax; //エンジェル　もっとも広い反応していない連続
+
   int mem_linedir;
 
-  void get();
+  int goalchance_count=0;
 
-  void begin(){
-    for(int i=0;i<4;i++){
-      pinMode(_pin[i],INPUT);
-    }
-  }
 
+  void get_value();    //値取得
+
+  int check(Sensors& c_sensors);
+  int check_angel();
+
+  void avoid(Sensors& c_sensors,Actuator& c_act); //ライン回避
+
+  void LEDset(int s);   //LED操作
+  
+  //void get();
+
+  int _th[NUM_lines]; //閾値
  private:
   bool _LED = true; //発光するか
-  byte _pin[4] = {A0,A1,A2,A3};
-  const byte ledpin = 13; //LED制御ピン
-  int _th[NUM_lines]; //閾値
+  byte _pin[4] = {Pin_Line1,Pin_Line2,Pin_Line3,Pin_Line4};
+  const byte ledpin = Pin_LineLED; //LED制御ピン
+  
 };
 
 class BNO {
@@ -104,7 +118,7 @@ class BNO {
   uint8_t cal_mag;
 
  private:
-  double dir0;
+  double dir0; //攻め方向
 };
 
 class ULTRASONIC{

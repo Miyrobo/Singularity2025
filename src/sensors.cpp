@@ -1,10 +1,12 @@
 #include "sensors.h"
+#include "Arduino.h"
+#include "EEPROM.h"
 #include "Pins.h"
 #include "device.h"
 
 // HardwareSerial Serial_arduino(Serial2);   //サブマイコン用のUARTの番号
 
-Adafruit_BNO055 bno055 = Adafruit_BNO055(-1, 0x28);
+Adafruit_BNO055 bno055 = Adafruit_BNO055(-1, 0x28, &BNO_I2C);
 
 #define OPENMV Serial4
 
@@ -32,21 +34,13 @@ void BALL::get() {  // ボールの位置取得
     } else {
       digitalWrite(Pin_MUX1, 0);
     }
-    //delayMicroseconds(1);
-    value[i]=analogRead(Pin_Ball1);
-    total+=1023-value[i];
-    value[i+8]=analogRead(Pin_Ball2);
-    total+=1023-value[i+8];
-    //delayMicroseconds(1);
+    // delayMicroseconds(1);
+    value[i] = analogRead(Pin_Ball1);
+    total += 1023 - value[i];
+    value[i + 8] = analogRead(Pin_Ball2);
+    total += 1023 - value[i + 8];
+    // delayMicroseconds(1);
   }
-
-  // Serial.print(value[0]);
-  // Serial.print("  ");
-  // Serial.print(value[4]);
-  // Serial.print("  ");
-  // Serial.print(value[8]);
-  // Serial.print("  ");
-  // Serial.print(value[12]);
 
   for (int i = 0; i < NUM_balls; i++) {
     int v = value[i];
@@ -64,63 +58,59 @@ void BALL::get() {  // ボールの位置取得
     y = y + (SIN16_1000[(i + 4) % 16] * ((double)value[i] / 1000.0));
   }
 
-  //dir = atan2(x,y) * 57.3;
+  // dir = atan2(x,y) * 57.3;
   distance = sqrt(x * x + y * y);
   distance = 0;
   if (num >= 1) {
     isExist = true;
-    x=0;y=0;
-    //for(int i=maxn+15;i<=maxn+17;i++){
-    for(int i=0;i<16;i++){
-      if(abs(maxn-i)<=2 || abs(maxn-i)>=14){ //最大 & 2つ隣まで
-        x+=(SIN16_1000[i%16] * ((double)value[i%16] / 1000.0));
-        y+=(SIN16_1000[(i + 4) % 16] * ((double)value[i%16] / 1000.0));
-        if(maxn==i);
-          distance+=(value[i%16] > _th ? 0 : _th-value[i%16]); //最大のセンサで距離を求める
+    x = 0;
+    y = 0;
+    for (int i = 0; i < 16; i++) {
+      if (abs(maxn - i) <= 2 || abs(maxn - i) >= 14) {  // 最大 & 2つ隣まで
+        x += (SIN16_1000[i % 16] * ((double)value[i % 16] / 1000.0));
+        y += (SIN16_1000[(i + 4) % 16] * ((double)value[i % 16] / 1000.0));
+        if (maxn == i)
+          ;
+        distance += (value[i % 16] > _th
+                         ? 0
+                         : _th - value[i % 16]);  // 最大のセンサで距離を求める
       }
     }
-    //distance-=1500;
-    if(distance<0)distance=0;
+    // distance-=1500;
+    if (distance < 0) distance = 0;
 
-    dir = atan2(x,y) * 57.3;
-    //Serial.println(dir);
+    dir = atan2(x, y) * 57.3;
+    // Serial.println(dir);
   } else {
     isExist = false;
-    dir=1000;
+    dir = 1000;
     distance = -1;
   }
 
-  // if (maxn >= 0) {
-  //   dir = maxn * 360 / NUM_balls;
-  //   if(dir > 180)dir-=360;
-  // } else {
-  //   dir = 1000;
-  // }
-
 #ifdef ball_debug
-if(Serial.read()=='B' || 1){
-  Serial.print('B');
-  for (int i = 0; i < NUM_balls; i++) {
-    Serial.print(value[i] / 4);
+  if (Serial.read() == 'B' || 1) {
+    Serial.print('B');
+    for (int i = 0; i < NUM_balls; i++) {
+      Serial.print(value[i] / 4);
+      Serial.print(',');
+    }
+    Serial.print(dir);
     Serial.print(',');
+    Serial.print((int)distance);
+    Serial.print(',');
+    Serial.print('\n');
+    // Serial.println("");
+    // Serial.print("  ");
+    // Serial.print(x);
+    // Serial.print("  ");
+    // Serial.println(y);
   }
-  Serial.print(dir);
-  Serial.print(',');
-  Serial.print((int)distance);
-  Serial.print(',');
-  Serial.print('\n');
-  // Serial.println("");
-  // Serial.print("  ");
-  // Serial.print(x);
-  // Serial.print("  ");
-  // Serial.println(y);
-}
 #endif
 }
 
 void BNO::setup() {
   bno055.begin();
-  Wire.setClock(400000);  // 400kHzに設定
+  BNO_I2C.setClock(400000);  // 400kHzに設定
   bno055.getTemp();
   bno055.setExtCrystalUse(true);
   reset();
@@ -147,6 +137,15 @@ void BNO::updateCalibration() {
   bno055.getCalibration(&cal_sys, &cal_gyro, &cal_accel, &cal_mag);
 }
 
+LINE::LINE() {  // 閾値
+  for (int i = 0; i < 4; i++) {
+    pinMode(_pin[i], INPUT);  // ピン設定
+  }
+  for (int i = 0; i < 32; i++) {
+    _th[i] = EEPROM.read(i) * 4;
+  }
+}
+
 void LINE::get_value() {
   for (int i = 0; i < 8; i++) {
     if (i >= 4) {
@@ -166,17 +165,304 @@ void LINE::get_value() {
     }
     delayMicroseconds(1);
     value32[i] = analogRead(A0);
-    value32[i+8] = analogRead(A1);
-    value32[i+16] = analogRead(A2);
-    value32[i+24] = analogRead(A3);
-    //delayMicroseconds(1);
+    value32[i + 8] = analogRead(A1);
+    value32[i + 16] = analogRead(A2);
+    value32[i + 24] = analogRead(A3);
+    // delayMicroseconds(1);
   }
-
-  for(int i=0;i<4;i++){
-    for(int j=0;j<8;j++){
-      value[i][j] = value32[i*8 + j];
+  Num_white = 0;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 8; j++) {
+      value[i][j] = value32[i * 8 + j];
+      if (value[i][j] > _th[i * 8 + j]) {
+        s[i][j] = true;
+        Num_white++;
+      } else {
+        s[i][j] = false;
+      }
     }
   }
+  // エンジェル
+  for (int i = 0; i < 4; i++) {
+    s_angel[(i * 3 + 11) % 12] = s[i][7];
+    s_angel[i * 3 + 0] = s[i][6];
+    s_angel[i * 3 + 1] = s[i][5];
+  }
+}
+
+int LINE::check(Sensors& c_sensors) {
+  // ラインの侵入深さチェック
+  for (int i = 0; i < 4; i++) {
+    if (s[i][5] + s[i][6] + s[i][7])  // エンジェル部分反応
+      depth[i] = 5;
+    else if (s[i][4])
+      depth[i] = 4;
+    else if (s[i][3])
+      depth[i] = 3;
+    else if (s[i][2])
+      depth[i] = 2;
+    else if (s[i][1] + s[i][0])
+      depth[i] = 1;
+    else
+      depth[i] = 0;
+  }
+
+  // エンジェルチェック
+  if (check_angel()) {  // エンジェル反応ありなら
+    sdir = rawdir - c_sensors.gyro.dir;
+    if (lmax >= 5 || dir == 1000) {
+      int diff = ((mem_linedir - sdir + 540) % 360) - 180;
+
+      if (abs(diff) > 100 && mem_linedir != 1000) {  // 前回との差が100°以上
+        isHalfout = !isHalfout;  // 半分以上外に出たと判定
+        // tone(buzzer,2000,50);
+      }
+
+      if (isHalfout) {
+        dir = sdir + 180;
+      } else {
+        dir = sdir;
+      }
+      if (dir > 180) dir -= 360;
+      mem_linedir = sdir;
+    } else {  // もっとも広い間隔が4以下
+      int diff = ((dir - sdir + 540) % 360) - 180;  //
+      if (abs(diff) < 90) {
+        dir = sdir;
+      } else {
+        dir = (sdir + 180) % 360;
+      }
+    }
+  } else {
+    sdir = 1000;
+    if (!isHalfout) {
+      dir = 1000;
+    }
+    mem_linedir = 1000;
+  }
+
+  if (Num_white > 0) {
+    return 1;
+  }
+  return 0;
+}
+
+int LINE::check_angel() {
+  Num_angel = 0;  // 反応数カウント
+  for (int i = 0; i < 12; i++) {
+    if (s_angel[i]) {
+      Num_angel++;
+    }
+  }
+
+  if (Num_angel > 0 && Num_angel < 12) {
+    float angle;
+    findLongestZeroGapWithAngle(s_angel, angle,lmax);  // もっとも広い反応していない間隔を返す
+    rawdir = angle;
+  } else {
+    rawdir = 1000;
+    return 0;
+  }
+  return Num_angel;
+}
+
+void LINE::avoid(Sensors& c_sensors,Actuator& c_act) {  // ライン回避
+  int dir_move = c_act.move.dir;
+  int speed = c_act.move.speed;
+  int balldir=c_sensors.ball.dir;
+
+  if(dir!=1000){
+    dir_move = -dir-c_sensors.gyro.dir;
+    speed=80;
+    if(abs((c_act.move.speed-dir_move+360+180)%360)<90 && !isHalfout)
+      speed = 50;
+  }else
+  if (dir_move != 1000 && 1) { //ライン十字部分処理
+    if (depth[0]) {
+      if(abs(balldir)<20 && c_sensors.ball.distance < 1500){
+        goalchance_count++;
+      }else{
+        goalchance_count=0;
+      }
+      speed = 80;
+      if (dir_move < 90 && dir_move > -90) {
+        
+        if (dir_move < 20 && dir_move > -20) {
+          speed = 30;
+          if(depth[0]>=2){
+            dir_move = 1000;
+          }
+          if(depth[0]>=4){
+            dir_move=180;
+          }
+        } else if (dir_move > 0) {
+          if(dir_move < 30 && dir_move > -30) speed = 50;
+          dir_move = 90;
+        } else {
+          if(dir_move < 30 && dir_move > -30) speed = 50;
+          dir_move = -90;
+        }
+      }
+      if(goalchance_count > 600){
+        c_act.move.carryball(balldir);
+        dir_move=c_act.move.dir;
+        speed=50;
+      }
+    }else{
+      //line.goalchance_count=0;
+    }
+    if (depth[1]) { //左
+      speed = 80;
+      if (dir_move < 0 && dir_move > -180) {
+        if(balldir + c_sensors.gyro.dir > 0){
+          dir_move = balldir;
+        }else if (dir_move > -110 && dir_move < -70  && (abs(balldir) >= 25)) {
+          speed = 30; //25/7/14 停止から変更
+          if(depth[1]<=2){
+
+          }else if(depth[1]>=4){
+            dir_move = 90;
+          }else{
+            dir_move = 1000;
+          }
+        } else if (dir_move > -90 || abs(balldir) < 25) {
+          if(dir_move > -120 && dir_move < -70){
+            speed = 50;
+          }
+          dir_move=0;
+          if(depth[1]<=2){
+            dir_move=-10;
+          }else if(depth[1]>=4){
+            dir_move=10;
+          }
+          if(depth[0]){
+            dir_move=1000;
+          }
+        } else {
+          if(dir_move > -120 && dir_move < -70){
+            speed = 50;
+          }
+          dir_move=180;
+          if(depth[1]<=2){
+            dir_move=-170;
+          }else if(depth[1]>=4){
+            dir_move=170;
+          }
+          if(depth[2]){
+            dir_move=1000;
+          }
+        }
+        #ifdef kadodassyutu
+          if(ping.value[0]<450){
+            dir_move = 0;
+          }
+        #endif
+      }
+    }
+    if (depth[2]) {
+      if (dir_move > 90 || dir_move < -90) {
+        speed = 80;
+        // if (dir_move > 150 || dir_move < -150) {
+        //   dir_move = 1000;
+        // } else if (dir_move > 0) {
+        //   dir_move = 90;
+        // } else {
+        //   dir_move = -90;
+        // }
+        if(balldir < 90 && balldir > -90){
+          if(balldir>0){
+            dir_move = 90;
+            if(depth[2]<=2){
+              dir_move = 100;
+            }else if(depth[2]>=4){
+              dir_move = 80;
+            }
+            if(depth[3]){
+              dir_move=1000;
+            }
+          }else{
+            dir_move = -90;
+            if(depth[2]<=2){
+              dir_move = -100;
+            }else if(depth[2]>=4){
+              dir_move = -80;
+            }
+            if(depth[1]){
+              dir_move=1000;
+            }
+          }
+        }else if (balldir > 160 || balldir < -160) { //ボール真後ろ
+          dir_move = 1000;
+        } else if (balldir > 0) { //ボール右
+          dir_move = 90;
+          if(depth[2]<=2){
+            dir_move = 100;
+          }else if(depth[2]>=4){
+            dir_move = 80;
+          }
+          if(depth[3]){
+            dir_move=1000;
+          }
+        } else { //ボール左
+          dir_move = -90;
+          if(depth[2]<=2){
+            dir_move = -100;
+          }else if(depth[2]>=4){
+            dir_move = -80;
+          }
+          if(depth[1]){
+            dir_move=1000;
+          }
+        }
+        
+      }
+    }
+    if (depth[3]) {
+      if (dir_move > 0 && dir_move < 180) {
+        speed = 80;
+        //dir_move=balldir+15; //裏技 ボールフィールド内なのに停止する事象の軽減
+        if(balldir + c_sensors.gyro.dir < 0){
+          dir_move = balldir;
+        }else if (dir_move < 100 && dir_move > 80 && (abs(balldir) >= 25)) {
+          speed = 30; //25/7/14 停止から変更
+          if(depth[3]<=2){
+            //速度だけ下げてそのままの動き
+          }else if(depth[3]>=4){
+            dir_move = -90;
+          }else{
+            dir_move = 1000;
+          }
+        } else if (dir_move < 90 || abs(balldir)<25) {
+          dir_move = 0;
+          if(depth[3]<=2){
+            dir_move=10;
+          }else if(depth[3]>=4){
+            dir_move=-10;
+          }
+          if(depth[0]){
+            dir_move=1000;
+          }
+        } else {
+          dir_move = -180;
+          if(depth[3]<=2){
+            dir_move=170;
+          }else if(depth[3]>=4){
+            dir_move=-170;
+          }
+          if(depth[3]){
+            dir_move=1000;
+          }
+        }
+        #ifdef kadodassyutu
+          if(ping.value[1]<450){
+            dir_move = 0;
+          }
+        #endif
+      }
+    }
+  }
+  c_act.move.dir = dir_move;
+  c_act.move.speed = speed;
 }
 
 void LINE::LEDset(int s = -1) {  // ラインのLED操作
@@ -202,7 +488,7 @@ int ULTRASONIC::get(int n) {
   pinMode(echo_pin[n], INPUT);
 
   // 入力パルスの長さを測定
-  int duration = pulseIn(echo_pin[n], HIGH,timeout);  //応答がなかったら0
+  int duration = pulseIn(echo_pin[n], HIGH, timeout);  // 応答がなかったら0
 
   // パルスの長さを半分に分割
   duration = duration / 2;
@@ -212,22 +498,18 @@ int ULTRASONIC::get(int n) {
 }
 
 void ULTRASONIC::get_all() {
-  for(int i=0;i<4;i++){
+  for (int i = 0; i < 4; i++) {
     get(i);
   }
 }
 
-unsigned long TIMER::get(){
-  return millis()-s_tim;
-}
+unsigned long TIMER::get() { return millis() - s_tim; }
 
-void TIMER::reset(){
-  s_tim=millis();
-}
+void TIMER::reset() { s_tim = millis(); }
 
 TIMER openmvtime;
 
-int CAMERA::get_goal(){
+int CAMERA::get_goal() {
   // if(goal_color == OPENMV_YELLOW){
   //   OPENMV.write('y');
   // }else{
@@ -250,53 +532,44 @@ int CAMERA::get_goal(){
   // }
   // return opp_goal;
 
-  if(OPENMV.available()){
-    return OPENMV.read();
+  if (OpenMV_UART.available()) {
+    return OpenMV_UART.read();
   }
+  return -1;
 }
 
-
-void CAMERA::getorangeball(){
-  while (OPENMV.available()) {
-    char header = OPENMV.read();
+void CAMERA::getorangeball() {
+  while (OpenMV_UART.available()) {
+    char header = OpenMV_UART.read();
     if (header == 'S') {
-        // 受信待ち
-        while (OPENMV.available() < 2) delay(1);
-        orangeX = OPENMV.read()-86;
-        orangeY = OPENMV.read()-60;
-        orangeDetected = true;
-        orangedir = atan2(orangeX, orangeY) * 57.3;
-        orangedistance = sqrt(orangeX*orangeX + orangeY*orangeY);
-        ocount=0; //カウントリセット
-        break;  // ループから抜ける
-    }
-    else if (header == 'N') {
+      // 受信待ち
+      while (OpenMV_UART.available() < 2) delay(1);
+      orangeX = OpenMV_UART.read() - 86;
+      orangeY = OpenMV_UART.read() - 60;
+      orangeDetected = true;
+      orangedir = atan2(orangeX, orangeY) * 57.3;
+      orangedistance = sqrt(orangeX * orangeX + orangeY * orangeY);
+      ocount = 0;  // カウントリセット
+      break;       // ループから抜ける
+    } else if (header == 'N') {
       ocount++;
-      if(ocount<3){
-
-      }else{
+      if (ocount < 3) {
+      } else {
         orangeDetected = false;
         orangeX = 0;
         orangeY = 0;
         orangedir = 1000;
       }
-        
+
       break;
     }
     // 'S'でも'N'でもないバイトは破棄してループ継続
+  }
 }
 
+void CAMERA::set_color(int c) { goal_color = c; }
 
-}
-
-void CAMERA::set_color(int c){
-  goal_color=c;
-}
-
-void CAMERA::begin(){
-  OPENMV.begin(9600);
-}
-
+void CAMERA::begin() { OpenMV_UART.begin(9600); }
 
 PUSHSWITCH::PUSHSWITCH(int pinno) {
   pin = pinno;
@@ -319,9 +592,7 @@ void PUSHSWITCH::update() {
   lastReadState = currentRead;
 }
 
-bool PUSHSWITCH::read() {
-  return digitalRead(pin);
-}
+bool PUSHSWITCH::read() { return digitalRead(pin); }
 
 bool PUSHSWITCH::pushed() {
   update();
@@ -343,26 +614,26 @@ bool PUSHSWITCH::pushed() {
 // 最も長い未検出(0)区間の中央角度を返す
 // - centerAngleDeg: 結果格納（°）
 // - 戻り値: 0=正常, 1=全検出, 2=全未検出
-int findLongestZeroGapWithAngle(int arr[12], float &centerAngleDeg,int &MAX) {
+int findLongestZeroGapWithAngle(int arr[12], float& centerAngleDeg, int& MAX) {
   int sum = 0;
-  MAX=0;
+  MAX = 0;
   for (int i = 0; i < 12; i++) {
-      sum += arr[i];
+    sum += arr[i];
   }
 
   if (sum == 12) {
-      // 全センサーが反応している → 全検出
-      return 1;
+    // 全センサーが反応している → 全検出
+    return 1;
   }
   if (sum == 0) {
-      // 全センサーが反応していない → 未検出モード
-      return 2;
+    // 全センサーが反応していない → 未検出モード
+    return 2;
   }
 
   // 環状なので配列を2倍にしてリングを展開
   int doubleArr[24];
   for (int i = 0; i < 24; i++) {
-      doubleArr[i] = arr[i % 12];
+    doubleArr[i] = arr[i % 12];
   }
 
   // 最大の0の連続区間を探す
@@ -370,22 +641,22 @@ int findLongestZeroGapWithAngle(int arr[12], float &centerAngleDeg,int &MAX) {
   int currentLen = 0, currentStart = 0;
 
   for (int i = 0; i < 24; i++) {
-      if (doubleArr[i] == 0) {
-          if (currentLen == 0) currentStart = i;
-          currentLen++;
-          if (currentLen > maxLen && currentLen <= 12) {
-              maxLen = currentLen;
-              maxStart = currentStart;
-          }
-      } else {
-          currentLen = 0;
+    if (doubleArr[i] == 0) {
+      if (currentLen == 0) currentStart = i;
+      currentLen++;
+      if (currentLen > maxLen && currentLen <= 12) {
+        maxLen = currentLen;
+        maxStart = currentStart;
       }
+    } else {
+      currentLen = 0;
+    }
   }
 
   float midIdx = maxStart + (maxLen - 1) / 2.0;
   int angleIdx = ((int)round(midIdx)) % 12;
   centerAngleDeg = angleIdx * 30.0f;
-  MAX=maxLen;
+  MAX = maxLen;
 
-  return 0; // 正常に検出
+  return 0;  // 正常に検出
 }

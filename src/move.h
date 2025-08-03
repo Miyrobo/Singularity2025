@@ -4,10 +4,10 @@
 
 class MOTOR {
  public:
-  void setup();
+  MOTOR(); //コントラクタ 初期化処理
   int m_speed[4];
-  void set_power(int, int, int, int);
-  void cal_power(int dir, int speed);
+  void set_power(int, int, int, int);           //回転速度を直接指定
+  void cal_power(int dir, int speed);           //方向 & 速度
   void cal_power(int dir, int speed, int rot);  // 回転を加える  +で時計回り
   void stop();
   void pwm_out();

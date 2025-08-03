@@ -1,7 +1,7 @@
 #include "move.h"
 #include "device.h"
 
-void MOTOR::setup(){
+MOTOR::MOTOR(){ //初期化処理
   analogWriteResolution(8); // 8bit = 0〜255
   for (int i = 0; i < 8; i++) {
     _pin[i] = Pin_motor[i];
@@ -15,17 +15,39 @@ void MOTOR::cal_power(int dir, int speed) {  //モーター出力を計算(進�
     m_speed[i] = (int)(sin((dir - _angle[i]) / 57.3) * speed);
     if(dir==1000)m_speed[i] = 0;
   }
+
+  //最大値をspeedに
+  int maxval = 0;
+  if(dir!=1000 && speed!=0){
+    for(int i=0; i<4; i++){
+      if(abs(m_speed[i])>maxval)
+        maxval=abs(m_speed[i]);
+    }
+    if(maxval!=0)
+      for(int i=0; i<4; i++)
+        m_speed[i] = (int)(m_speed[i] * ((float)speed / maxval));
+  }
 }
 
 void MOTOR::cal_power(int dir, int speed, int rot) { //モーター出力を計算 移動と同時に回転(進行方向, スピード, 回転速度)
   for (int i = 0; i < 4; i++) {
-    m_speed[i] = (int)(sin((dir - _angle[i]) / 57.3) * speed) + rot;
-    if(dir==1000)m_speed[i] = rot;
+    m_speed[i] = (int)(sin((dir - _angle[i]) / 57.3) * speed);
+    if(dir==1000)m_speed[i] = 0;
   }
-  if(dir==0 && speed>=80 && abs(rot)<5){
-    for (int i = 0; i < 4; i++) {
-      m_speed[i] = (int)(sin((0 - _angle[i]) / 57.3) * speed);
+  //最大値をspeedに
+  int maxval = 0;
+  if(dir!=1000 && speed!=0){
+    for(int i=0; i<4; i++){
+      if(abs(m_speed[i])>maxval)
+        maxval=abs(m_speed[i]);
     }
+    if(maxval!=0)
+      for(int i=0; i<4; i++)
+        m_speed[i] = (int)(m_speed[i] * ((float)speed / maxval));
+  }
+  
+  for (int i = 0; i < 4; i++) {
+    m_speed[i]+=rot;
   }
 }
 
@@ -87,12 +109,12 @@ void MOVE::carryball(int balldir,int balldistance) {
     if (balldir <= 30 && balldir >= -30) {
       if(balldistance < distance_th){
         a = 50;
-        this->speed = 40;
+        this->speed = 60;
       }else a=15;
     } else if (balldir <= 60 && balldir >= -60) {
       if(balldistance < distance_th){
         a = 60;
-        this->speed=40;
+        this->speed=60;
       }else a=30;
     } else {
       a = 80;

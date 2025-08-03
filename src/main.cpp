@@ -9,7 +9,7 @@
 #include <game.h>
 
 
-#define MAX_Speed 120
+#define MAX_Speed 100
 
 int WirelessControl=0;
 
@@ -39,40 +39,30 @@ TIMER timfps;
 int fps=0;
 
 int z = -1;  // ラインの戻る方向
-int dir_move;
-bool kick = 0;
+bool kick = 0; //キッカー状態
 
-int hold_th;
+int hold_th; //ホールドセンサ 閾値
 
 void sensormonitor();
 int mode = 0;  // センサーモニターモード
 
-int line_th[32];
 
 void setup() {
   //ピン設定
   pins_init(); 
 
   tone(buzzer, 2714, 120);
-  motor.setup();
   openmv.begin();
   Display_Singularityinit();
-  analogReadAveraging(10);
+  analogReadAveraging(5);
 
   Serial.begin(9600);
-  Serial5.begin(115200);
+  ESP32_UART.begin(115200);
 
   motor.stop();
   motor.pwm_out();
-  if(Serial){
-    tone(buzzer, 3000, 120);
-  }
   gyro.setup();
-
-
-  for (int i = 0; i < 32; i++) {
-    line_th[i] = EEPROM.read(i) * 4;
-  }
+  
   //EEPROM.write(34, 100);
   hold_th = EEPROM.read(34);
 
@@ -112,7 +102,7 @@ bool WirelessStop=false;
 TIMER timer_lift; //持ち上げ検出タイマ
 void loop() {
   
-  int speed = MAX_Speed;
+  move.speed = MAX_Speed;
   fps++;
   if(timfps.get()>1000){ //1秒間の処理速度表示
     display.clearDisplay();
@@ -127,357 +117,72 @@ void loop() {
   sensormonitor();
   motor.brake=true;
 
+  gyro.get();
 //ライン読み取り
-  //int line[4][8] = {0};
-  int line_maxn[4]={0}; //反応してる中で最も内側
   line.get_value();
-
-  int line_s[4] = {0};
-  //int line_n[4] = {0};
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 8; j++) {
-      // if ((line[i][j] > 500 && j != 3) || line[i][j] > 850) {
-      //   line_s[i] = 1;
-      // } else if (j < 2 && line[i][j] > 230) {
-      //   line_s[i] = 1;
-      // }
-
-      // if (i == 0 && 1) {
-      //   Serial.print(line[i][j]);
-      //   Serial.print("  ");
-      // }
-      if (line.value[i][j] > line_th[i * 8 + j]) {
-        if(j>line_maxn[i]){
-          line_maxn[i]=j;
-        }
-        line_s[i] = 1;
-        if (j >= 6) { //エンジェル部分のみ
-          //line_n[i] = 1;
-        }
-      }
-    }
-  }
+  line.check(sensors);
 
 
-  if (pingset.get() > 200) { //超音波を200ms間隔で読み取り
+  if (pingset.get() > 200 && 0) { //超音波を200ms間隔で読み取り
     ping.get(0);
     ping.get(1);
     ping.get(2);
     pingset.reset();
   }
-
-  if (line_s[0] + line_s[1] + line_s[2] + line_s[3]) {
-    // tone(buzzer, 2000);
-  } else {
-    noTone(buzzer);
-  }
   
-  gyro.get();
+  
 
-  //オレンジボール
-  //openmv.getorangeball();
-  //ball.dir=openmv.orangedir;
-  //ball.isExist=openmv.orangeDetected;
-  if(openmv.orangeDetected){
-    if(openmv.orangedistance > 40)ball.distance=5000;
-    else ball.distance = 500;
-
-    // if(openmv.orangedistance < 40)speed=60;
-    // if(openmv.orangedistance < 35)speed=40;
-    // if(openmv.orangedistance < 30)speed=34;
-    // if(openmv.orangedistance < 26){
-    //   TIMER tim12;
-    //   tim12.reset();
-    //   while(tim12.get()<2000){
-    //     openmv.getorangeball();
-    //     speed=0;
-    //     dir_move=80;
-    //     motor.cal_power(dir_move,60,openmv.orangedir);
-    //     motor.pwm_out();
-    //     if(!openmv.orangeDetected || openmv.orangedistance>30)break;
-    //   }
-    //   tim12.reset();
-    //   while(tim12.get()<500){
-    //     openmv.getorangeball();
-    //     speed=0;
-    //     dir_move=0;
-    //     motor.cal_power(dir_move,80,0);
-    //     motor.pwm_out();
-    //     if(!openmv.orangeDetected || openmv.orangedistance>30)break;
-    //   }
-      
-      
-    //}
-  }
-  //if(!ball.isExist)
-    ball.get();
+  ball.get();
 
   if (ball.isExist) { //ボール見えた
-    // int z;
-    // if (ball.dir < 15 && ball.dir > -15) {
-    //   dir_move = 0;
-    // } else if (ball.dir > 0) {
-    //   dir_move = ball.dir + 50;
-    // } else {
-    //   dir_move = ball.dir - 50;
-    // }
     if(move.kickdir == 0){
       move.carryball(ball.dir + gyro.dir,ball.distance);
-      dir_move=move.dir-gyro.dir;
+      move.dir=move.dir-gyro.dir;
     }else{
       move.carryball(ball.dir,ball.distance);
-      dir_move=move.dir;
     }
 
-    if (dir_move > 180)
-      dir_move -= 360;
-    else if (dir_move < -180)
-      dir_move += 360;
-    // motor.cal_power(dir_move, 60, -gyro.dir / 2);
+    if (move.dir > 180)
+      move.dir -= 360;
+    else if (move.dir < -180)
+      move.dir += 360;
 
     timer[13].reset();
   } else {
-    dir_move = 1000;
-    // motor.cal_power(0, 0, -gyro.dir / 2);
+    move.dir = 1000;
   }
   
 
-  if(timer[13].get()>100 && 0){ //ボールが見えずに0.1秒経過
+  if(timer[13].get()>100 && 0){ //ボールが見えずに0.1秒経過 定位置復帰
     int pingdiff = ping.value[0]-ping.value[1]; //右に行くほど+
-    speed = 80;
+    move.speed = 80;
     if(ping.value[2]>70){
       if(pingdiff > 20){
-        dir_move = -135;
+        move.dir = -135;
       }else if(pingdiff < -20){
-        dir_move = 135;
+        move.dir = 135;
       }else{
-        dir_move=180;
+        move.dir=180;
       }
     }else{
       if(pingdiff > 20){
-        dir_move = -90;
+        move.dir = -90;
       }else if(pingdiff < -20){
-        dir_move = 90;
+        move.dir = 90;
       }else{
-        dir_move=1000;
+        move.dir=1000;
       }
     }
     
   }
-  
 
+  line.avoid(sensors,act); //ライン回避
 
-  // if(ball1<ball2-100){
-  //   motor.cal_power(90, 60, -gyro.dir / 2);
-  // }else if(ball2<ball1-100){
-  //   motor.cal_power(-90, 60, -gyro.dir / 2);
-  // }else{
-  //   motor.stop();
-  // }
   
   if(abs(ball.dir)<15 && line.goalchance_count<0)line.goalchance_count++;
   //line.goalchance_count=0; //機能無効化
-  if (dir_move != 1000 && 1) { //ライン十字部分処理
-    if (line_s[0]) {
-      if(abs(ball.dir)<20 && ball.distance < 1500){
-        line.goalchance_count++;
-      }else{
-        line.goalchance_count=0;
-      }
-      speed = 80;
-      if (dir_move < 90 && dir_move > -90) {
-        
-        if (dir_move < 20 && dir_move > -20) {
-          speed = 30;
-          if(line_maxn[0]>=2){
-            dir_move = 1000;
-          }
-          if(line_maxn[0]>=4){
-            dir_move=180;
-          }
-        } else if (dir_move > 0) {
-          if(dir_move < 30 && dir_move > -30) speed = 50;
-          dir_move = 90;
-        } else {
-          if(dir_move < 30 && dir_move > -30) speed = 50;
-          dir_move = -90;
-        }
-      }
-      if(line.goalchance_count > 600){
-        move.carryball(ball.dir);
-        dir_move=move.dir;
-        speed=50;
-      }
-    }else{
-      //line.goalchance_count=0;
-    }
-    if (line_s[1]) { //左
-      speed = 80;
-      if (dir_move < 0 && dir_move > -180) {
-        if(ball.dir + gyro.dir > 0){
-          dir_move = ball.dir;
-        }else if (dir_move > -110 && dir_move < -70  && (abs(ball.dir) >= 25)) {
-          speed = 30; //25/7/14 停止から変更
-          if(line_maxn[1]<=2){
+  
 
-          }else if(line_maxn[1]>=4){
-            dir_move = 90;
-          }else{
-            dir_move = 1000;
-          }
-        } else if (dir_move > -90 || abs(ball.dir) < 25) {
-          if(dir_move > -120 && dir_move < -70){
-            speed = 50;
-          }
-          dir_move=0;
-          if(line_maxn[1]<=2){
-            dir_move=-10;
-          }else if(line_maxn[1]>=4){
-            dir_move=10;
-          }
-          if(line_s[0]){
-            dir_move=1000;
-          }
-        } else {
-          if(dir_move > -120 && dir_move < -70){
-            speed = 50;
-          }
-          dir_move=180;
-          if(line_maxn[1]<=2){
-            dir_move=-170;
-          }else if(line_maxn[1]>=4){
-            dir_move=170;
-          }
-          if(line_s[2]){
-            dir_move=1000;
-          }
-        }
-        #ifdef kadodassyutu
-          if(ping.value[0]<450){
-            dir_move = 0;
-          }
-        #endif
-      }
-    }
-    if (line_s[2]) {
-      if (dir_move > 90 || dir_move < -90) {
-        speed = 80;
-        // if (dir_move > 150 || dir_move < -150) {
-        //   dir_move = 1000;
-        // } else if (dir_move > 0) {
-        //   dir_move = 90;
-        // } else {
-        //   dir_move = -90;
-        // }
-        if(ball.dir < 90 && ball.dir > -90){
-          if(ball.dir>0){
-            dir_move = 90;
-            if(line_maxn[2]<=2){
-              dir_move = 100;
-            }else if(line_maxn[2]>=4){
-              dir_move = 80;
-            }
-            if(line_s[3]){
-              dir_move=1000;
-            }
-          }else{
-            dir_move = -90;
-            if(line_maxn[2]<=2){
-              dir_move = -100;
-            }else if(line_maxn[2]>=4){
-              dir_move = -80;
-            }
-            if(line_s[1]){
-              dir_move=1000;
-            }
-          }
-        }else if (ball.dir > 160 || ball.dir < -160) { //ボール真後ろ
-          dir_move = 1000;
-        } else if (ball.dir > 0) { //ボール右
-          dir_move = 90;
-          if(line_maxn[2]<=2){
-            dir_move = 100;
-          }else if(line_maxn[2]>=4){
-            dir_move = 80;
-          }
-          if(line_s[3]){
-            dir_move=1000;
-          }
-        } else { //ボール左
-          dir_move = -90;
-          if(line_maxn[2]<=2){
-            dir_move = -100;
-          }else if(line_maxn[2]>=4){
-            dir_move = -80;
-          }
-          if(line_s[1]){
-            dir_move=1000;
-          }
-        }
-        
-      }
-    }
-    if (line_s[3]) {
-      if (dir_move > 0 && dir_move < 180) {
-        speed = 80;
-        //dir_move=ball.dir+15; //裏技 ボールフィールド内なのに停止する事象の軽減
-        if(ball.dir + gyro.dir < 0){
-          dir_move = ball.dir;
-        }else if (dir_move < 100 && dir_move > 80 && (abs(ball.dir) >= 25)) {
-          speed = 30; //25/7/14 停止から変更
-          if(line_maxn[3]<=2){
-            //速度だけ下げてそのままの動き
-          }else if(line_maxn[3]>=4){
-            dir_move = -90;
-          }else{
-            dir_move = 1000;
-          }
-        } else if (dir_move < 90 || abs(ball.dir)<25) {
-          dir_move = 0;
-          if(line_maxn[3]<=2){
-            dir_move=10;
-          }else if(line_maxn[3]>=4){
-            dir_move=-10;
-          }
-          if(line_s[0]){
-            dir_move=1000;
-          }
-        } else {
-          dir_move = -180;
-          if(line_maxn[3]<=2){
-            dir_move=170;
-          }else if(line_maxn[3]>=4){
-            dir_move=-170;
-          }
-          if(line_s[3]){
-            dir_move=1000;
-          }
-        }
-        #ifdef kadodassyutu
-          if(ping.value[1]<450){
-            dir_move = 0;
-          }
-        #endif
-      }
-    }
-  }
-/*
-  if (z == -1) {
-    if (line_n[0]) {
-      linetim.reset();
-      z = 180;
-    } else if (line_n[1]) {
-      linetim.reset();
-      z = 90;
-    } else if (line_n[2]) {
-      linetim.reset();
-      z = 0;
-    } else if (line_n[3]) {
-      linetim.reset();
-      z = -90;
-    }
-  }
-*/
   if (analogRead(Pin_ballcatch) < hold_th) {
     timer[11].reset(); //ボール捕捉中
   }else{
@@ -490,110 +195,20 @@ void loop() {
       kickdir = -30;
       else
         kickdir = -10;
-      motor.cal_power(dir_move, speed, pid.run((gyro.dir - kickdir)/6));
+      motor.cal_power(move.dir, move.speed, pid.run((gyro.dir - kickdir)/6));
     } else if (ping.value[1] > 85 && ping.value[0] < 60) {
       if(ping.value[2]>100 ||1) //敵陣
         kickdir = 30;
       else
         kickdir = 10;
-      motor.cal_power(dir_move, speed, pid.run((gyro.dir - kickdir)/4));
+      motor.cal_power(move.dir, move.speed, pid.run((gyro.dir - kickdir)/4));
     } else
-      motor.cal_power(dir_move, speed, pid.run(gyro.dir/4));
+      motor.cal_power(move.dir, move.speed, pid.run(gyro.dir/4));
   } else {
-    motor.cal_power(dir_move, speed, pid.run(gyro.dir));
+    motor.cal_power(move.dir, move.speed, pid.run(gyro.dir));
   }
   move.kickdir=kickdir;
-  //motor.cal_power(dir_move, speed, pid.run(gyro.dir));
 
-  // if(timer[0].get()<1300){
-  //   if(timer[0].get()<300)dir_move=180;
-  //   motor.cal_power(dir_move, speed, (gyro.dir-55) / 2);
-  //   tone(buzzer,500);
-  // }
-
-
-
-  //エンジェルライン処理 25/07/20
-  for(int i=0;i<4;i++){
-    line.value_angel[(i*3 + 11)%12] = line.value[i][7]>line_th[i*8+7]?1:0;
-    line.value_angel[i*3 + 0]       = line.value[i][6]>line_th[i*8+6]?1:0;
-    line.value_angel[i*3 + 1]       = line.value[i][5]>line_th[i*8+5]?1:0;
-  }
-  line.Num_angel=0;
-  for(int i=0;i<12;i++){
-    if(line.value_angel[i]){
-      line.Num_angel++;
-    }
-  }
-
-  float line__angle;
-  int lmax;
-  if(findLongestZeroGapWithAngle(line.value_angel,line__angle,lmax)==0 && line.Num_angel>=1){ //1~11のエンジェル反応
-    
-    
-    line.sdir=line__angle-gyro.dir;
-    if(lmax>=5 || line.dir==1000){
-      
-      int diff = ((line.mem_linedir - line.sdir + 540) % 360) - 180;
-
-      if(abs(diff)>100 && line.mem_linedir!=1000){ //前回との差が100°以上
-        line.isHalfout=!line.isHalfout; //半分以上外に出たと判定
-        //tone(buzzer,2000,50);
-      }
-
-      if(line.isHalfout){
-        line.dir=line.sdir+180;
-      }else{
-        line.dir=line.sdir;
-      }
-      if(line.dir>180)line.dir-=360;
-      line.mem_linedir=line.sdir;
-    }else{ //もっとも広い間隔が4以下
-      int diff = ((line.dir - line.sdir + 540) % 360) - 180; //
-      if(abs(diff)<90){
-        line.dir=line.sdir;
-      }else{
-        line.dir=(line.sdir+180)%360;
-      }
-    }
-    
-    
-
-    //display.drawLine(64, 32, 64 + cos(line.dir * PI / 180.0) * 5, 32 - sin(line.dir * PI / 180.0) * 5, SSD1306_WHITE);
-  }else{
-    line.sdir=1000;
-    if(!line.isHalfout){
-      line.dir=1000;
-    }
-    line.mem_linedir=1000;
-  }
-  if(line.dir!=1000){
-    if(abs(ball.dir)<20 && !(line.isHalfout && line.Num_angel<1) && line.goalchance_count > 600){
-      move.carryball(ball.dir);
-      z=move.dir;
-      speed=50; //ゴールまであと少し押し込み
-    }else
-      z=-line.dir-gyro.dir;
-      if(line.isHalfout && line.Num_angel<1) line.goalchance_count=-250;
-  }else{
-    z=-1; //すべてのエンジェルが反応なし
-  }
-
-  //エンジェルライン処理ここまで
-
-
-  if (z != -1 && TS) {
-    if(abs((z-dir_move+360+180)%360)<90 && !line.isHalfout) //回避方向と進行方向が逆なら減速
-      speed=50;
-    
-    if(line.isHalfout)speed=80;
-    motor.cal_power(z, speed, pid.run(gyro.dir));
-    //motor.pwm_out();
-    // tone(buzzer, 2000, 100);
-  }
-  if(line_s[0] || line_s[1] || line_s[2] || line_s[3]){ //どれかのセンサーが反応
-    timer[16].reset();
-  }
 
 
   if (!TS) {
@@ -679,8 +294,7 @@ void loop() {
   default:
     break;
   }
-  //Serial5.print("ball = ");
-  Serial5.println(ball.dir);
+  ESP32_UART.println(ball.dir);
   
 
   motor.pwm_out();
@@ -762,16 +376,16 @@ void sensormonitor() {
       //十字部分 閾値判定
       int line_m[4][4] = {0};
       for (int i = 0; i < 4; i++) {
-        if (line.value[i][2] > line_th[i * 8 + 2]) {
+        if (line.value[i][2] > line._th[i * 8 + 2]) {
           line_m[i][0] = 1;
         }
-        if (line.value[i][3] > line_th[i * 8 + 3]) {
+        if (line.value[i][3] > line._th[i * 8 + 3]) {
           line_m[i][1] = 1;
         }
-        if (line.value[i][4] > line_th[i * 8 + 4]) {
+        if (line.value[i][4] > line._th[i * 8 + 4]) {
           line_m[i][2] = 1;
         }
-        if (line.value[i][6] > line_th[i * 8 + 6]) { //5ではなく6
+        if (line.value[i][6] > line._th[i * 8 + 6]) { //5ではなく6
           line_m[i][3] = 1;
         }
       }
@@ -795,7 +409,7 @@ void sensormonitor() {
         }
 
         //外側部分 描画
-        if (line.value[i][1] > line_th[i * 8 +1]) {
+        if (line.value[i][1] > line._th[i * 8 +1]) {
           display.fillRect(
               64 + cos(i * PI / 2) * (5 - 0) * 6 + sin(i * PI / 2) * 6 - 3,
               32 - sin(i * PI / 2) * (5 - 0) * 6 + cos(i * PI / 2) * 6 - 3, 6,
@@ -808,7 +422,7 @@ void sensormonitor() {
         }
 
         //円部分 描画
-        if (line.value[i][0] > line_th[i * 8 + 0]) {
+        if (line.value[i][0] > line._th[i * 8 + 0]) {
           display.fillRect(
               64 + cos(i * PI / 2) * (5 - 0) * 6 - sin(i * PI / 2) * 6 - 3,
               32 - sin(i * PI / 2) * (5 - 0) * 6 - cos(i * PI / 2) * 6 - 3, 6,
@@ -820,7 +434,7 @@ void sensormonitor() {
               2, SSD1306_WHITE);
         }
 
-        if (line.value[i][5] > line_th[i * 8 + 5]) { //6ではなく5
+        if (line.value[i][5] > line._th[i * 8 + 5]) { //6ではなく5
           display.fillRect(64 + cos((i / 2.0 + 1.0 / 6.0) * PI) * 12 - 3,
                            32 - sin((i / 2.0 + 1.0 / 6) * PI) * 12 - 3, 6, 6,
                            SSD1306_WHITE);
@@ -829,7 +443,7 @@ void sensormonitor() {
                            32 - sin((i / 2.0 + 1.0 / 6) * PI) * 12 - 1, 2, 2,
                            SSD1306_WHITE);
         }
-        if (line.value[i][7] > line_th[i * 8 + 7]) {
+        if (line.value[i][7] > line._th[i * 8 + 7]) {
           display.fillRect(64 + cos((i / 2.0 - 1.0 / 6.0) * PI) * 12 - 3,
                            32 - sin((i / 2.0 - 1.0 / 6) * PI) * 12 - 3, 6, 6,
                            SSD1306_WHITE);
@@ -841,9 +455,9 @@ void sensormonitor() {
       }
       //エンジェルライン処理 25/07/20
       for(int i=0;i<4;i++){
-        line.value_angel[(i*3 + 11)%12] = line.value[i][7]>line_th[i*8+7]?1:0;
-        line.value_angel[i*3 + 0]       = line.value[i][6]>line_th[i*8+6]?1:0;
-        line.value_angel[i*3 + 1]       = line.value[i][5]>line_th[i*8+5]?1:0;
+        line.value_angel[(i*3 + 11)%12] = line.value[i][7]>line._th[i*8+7]?1:0;
+        line.value_angel[i*3 + 0]       = line.value[i][6]>line._th[i*8+6]?1:0;
+        line.value_angel[i*3 + 1]       = line.value[i][5]>line._th[i*8+5]?1:0;
       }
 
       float line__angle;
@@ -889,7 +503,7 @@ void sensormonitor() {
       display.setCursor(0, 20);
       int l1,l2;
       l1=lp/4;l2=lp % 4 + 2;
-      display.print(line_th[l1*8+l2]);
+      display.print(line._th[l1*8+l2]);
       if (SW2) {
         lp++;
         if (lp > 15) lp = 0; //もともと15
@@ -1031,7 +645,7 @@ void sensormonitor() {
             EEPROM.write(i,(((max[i]-max_g[i])*0.1 + max_g[i]) /4));
           }
           for (int i = 0; i < 32; i++) {
-            line_th[i] = EEPROM.read(i) * 4;
+            line._th[i] = EEPROM.read(i) * 4;
           }
         }
       }

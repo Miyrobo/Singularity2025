@@ -1,8 +1,10 @@
 #include "UI.h"
+#include "Pins.h"
 #include "Wire.h"
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire2, -1);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &DISPLAY_I2C, -1);
 
 void Display_Singularityinit(){
+  DISPLAY_I2C.setClock(400000);  // 400kHzに設定
   display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
   display.clearDisplay();
   display.setTextSize(1);
