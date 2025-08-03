@@ -326,16 +326,16 @@ bool PUSHSWITCH::read() {
 bool PUSHSWITCH::pushed() {
   update();
 
-  if (lastReportedState == 1 && lastStableState == 0) {
-    lastReportedState = 0;
-    return true;  // 押された瞬間
+  bool result = false;
+
+  if (lastStableState != lastReportedState) {
+    if (lastReportedState == 1 && lastStableState == 0) {
+      result = true;  // 押された瞬間
+    }
+    lastReportedState = lastStableState;
   }
 
-  if (lastStableState == 1) {
-    lastReportedState = 1;
-  }
-
-  return false;
+  return result;
 }
 
 // Created with the help of ChatGPT (OpenAI) - 2025/07/20

@@ -16,8 +16,6 @@
 
 #define TS !digitalRead(Pin_TS)
 
-#define Pin_ballcatch A6
-
 
 #define NUM_balls 16
 #define NUM_lines 32
@@ -164,10 +162,10 @@ class PUSHSWITCH {
 private:
   int pin;
   bool state = 0;
-  bool lastStableState = 0;
-  bool lastReadState = 0;
+  bool lastStableState = 1;
+  bool lastReadState = 1;
   unsigned long lastDebounceTime = 0;
-  const unsigned long debounceDelay = 0; // ms
+  const unsigned long debounceDelay = 10; // ms
   bool lastReportedState = 1;
 
   void update();

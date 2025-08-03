@@ -4,6 +4,7 @@
 void MOTOR::setup(){
   analogWriteResolution(8); // 8bit = 0〜255
   for (int i = 0; i < 8; i++) {
+    _pin[i] = Pin_motor[i];
     analogWriteFrequency(_pin[i], _frequency); // 周波数設定
     analogWrite(_pin[i], 0); // 初期値 = OFF
   }

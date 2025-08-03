@@ -16,7 +16,7 @@ class MOTOR {
 
  private:
   const int _frequency = 20000; //PWM周波数 20kHz
-  const int _pin[8] = {22,23,5,6,7,8,9,10};
+  int _pin[8]; //モーターのピン Pins.hの内容コピー
   const int _angle[4] = {-45, 45, 135, -135};  // モーター取り付け角度
   const float _corr[4] = {1, -1, -1, -1};       // 回転補正
 };

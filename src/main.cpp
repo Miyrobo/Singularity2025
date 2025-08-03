@@ -9,7 +9,7 @@
 #include <game.h>
 
 
-#define MAX_Speed 100
+#define MAX_Speed 120
 
 int WirelessControl=0;
 
@@ -51,36 +51,8 @@ int line_th[32];
 
 void setup() {
   //ピン設定
-  pinMode(Pin_MUX1, OUTPUT);
-  pinMode(Pin_MUX2, OUTPUT);
-  pinMode(Pin_MUX3, OUTPUT);
+  pins_init(); 
 
-  pinMode(Pin_kicker, OUTPUT);
-
-  pinMode(A21, INPUT);
-  pinMode(A22, INPUT);
-
-  pinMode(A0, INPUT);
-  pinMode(A1, INPUT);
-  pinMode(A2, INPUT);
-  pinMode(A3, INPUT);
-
-  pinMode(A16, INPUT);
-  pinMode(A17, INPUT);
-
-  pinMode(22, OUTPUT);
-  pinMode(23, OUTPUT);
-
-  pinMode(13, OUTPUT);
-
-  pinMode(Pin_S1, INPUT);
-  pinMode(Pin_S2, INPUT);
-  pinMode(Pin_S3, INPUT);
-  pinMode(Pin_TS, INPUT);
-
-  pinMode(Pin_ballcatch, INPUT);
-
-  pinMode(buzzer, OUTPUT);
   tone(buzzer, 2714, 120);
   motor.setup();
   openmv.begin();
@@ -203,9 +175,9 @@ void loop() {
   gyro.get();
 
   //オレンジボール
-  openmv.getorangeball();
-  ball.dir=openmv.orangedir;
-  ball.isExist=openmv.orangeDetected;
+  //openmv.getorangeball();
+  //ball.dir=openmv.orangedir;
+  //ball.isExist=openmv.orangeDetected;
   if(openmv.orangeDetected){
     if(openmv.orangedistance > 40)ball.distance=5000;
     else ball.distance = 500;
@@ -237,7 +209,7 @@ void loop() {
       
     //}
   }
-  if(!ball.isExist)
+  //if(!ball.isExist)
     ball.get();
 
   if (ball.isExist) { //ボール見えた
@@ -271,10 +243,6 @@ void loop() {
   
 
   if(timer[13].get()>100 && 0){ //ボールが見えずに0.1秒経過
-    // ping.get(0); //左
-    // ping.get(1); //右
-    // ping.get(2);
-
     int pingdiff = ping.value[0]-ping.value[1]; //右に行くほど+
     speed = 80;
     if(ping.value[2]>70){
