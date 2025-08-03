@@ -38,7 +38,6 @@ Actuator act{motor, move, pid};
 TIMER timfps;
 int fps=0;
 
-int z = -1;  // ラインの戻る方向
 bool kick = 0; //キッカー状態
 
 int hold_th; //ホールドセンサ 閾値
@@ -100,6 +99,8 @@ bool WirelessStop=false;
 
 //#define kadodassyutu//2025/6/22
 TIMER timer_lift; //持ち上げ検出タイマ
+
+//========================================================================================================================
 void loop() {
   
   move.speed = MAX_Speed;
@@ -129,10 +130,8 @@ void loop() {
     ping.get(2);
     pingset.reset();
   }
-  
-  
 
-  ball.get();
+  ball.get(); //ボール位置取得
 
   if (ball.isExist) { //ボール見えた
     if(move.kickdir == 0){
@@ -242,6 +241,7 @@ void loop() {
     
   }
 
+  //ESP32使用 無線デバッグ機能
   if(WirelessStop)motor.stop();
   int c=Serial5.read();
 
@@ -295,9 +295,9 @@ void loop() {
     break;
   }
   ESP32_UART.println(ball.dir);
-  
+  //無線デバッグ機能 ここまで
 
-  motor.pwm_out();
+  motor.pwm_out(); //モーター出力
 
 }
 

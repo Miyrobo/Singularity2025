@@ -108,6 +108,7 @@ void BALL::get() {  // ボールの位置取得
 #endif
 }
 
+//---------------------------------------------------------------------------------------------
 void BNO::setup() {
   bno055.begin();
   BNO_I2C.setClock(400000);  // 400kHzに設定
@@ -115,7 +116,7 @@ void BNO::setup() {
   bno055.setExtCrystalUse(true);
   reset();
 }
-
+//---------------------------------------------------------------------------------------------
 void BNO::get() {
   imu::Vector<3> euler = bno055.getVector(Adafruit_BNO055::VECTOR_EULER);
   ypr[0] = euler.x();
@@ -127,16 +128,18 @@ void BNO::get() {
   else if (dir < -179)
     dir += 360;
 }
-
+//---------------------------------------------------------------------------------------------
 void BNO::reset() {  // 攻め方向リセット
   this->get();
   dir0 = ypr[0];
 }
-
+//---------------------------------------------------------------------------------------------
 void BNO::updateCalibration() {
   bno055.getCalibration(&cal_sys, &cal_gyro, &cal_accel, &cal_mag);
 }
 
+
+//=============================================================================================
 LINE::LINE() {  // 閾値
   for (int i = 0; i < 4; i++) {
     pinMode(_pin[i], INPUT);  // ピン設定
@@ -145,7 +148,7 @@ LINE::LINE() {  // 閾値
     _th[i] = EEPROM.read(i) * 4;
   }
 }
-
+//---------------------------------------------------------------------------------------------
 void LINE::get_value() {
   for (int i = 0; i < 8; i++) {
     if (i >= 4) {
@@ -189,7 +192,7 @@ void LINE::get_value() {
     s_angel[i * 3 + 1] = s[i][5];
   }
 }
-
+//---------------------------------------------------------------------------------------------
 int LINE::check(Sensors& c_sensors) {
   // ラインの侵入深さチェック
   for (int i = 0; i < 4; i++) {
@@ -246,7 +249,7 @@ int LINE::check(Sensors& c_sensors) {
   }
   return 0;
 }
-
+//---------------------------------------------------------------------------------------------
 int LINE::check_angel() {
   Num_angel = 0;  // 反応数カウント
   for (int i = 0; i < 12; i++) {
@@ -265,7 +268,7 @@ int LINE::check_angel() {
   }
   return Num_angel;
 }
-
+//---------------------------------------------------------------------------------------------
 void LINE::avoid(Sensors& c_sensors,Actuator& c_act) {  // ライン回避
   int dir_move = c_act.move.dir;
   int speed = c_act.move.speed;
@@ -464,14 +467,17 @@ void LINE::avoid(Sensors& c_sensors,Actuator& c_act) {  // ライン回避
   c_act.move.dir = dir_move;
   c_act.move.speed = speed;
 }
-
+//---------------------------------------------------------------------------------------------
 void LINE::LEDset(int s = -1) {  // ラインのLED操作
   if (s == -1) {
     s = this->_LED;
   }
   digitalWrite(ledpin, s);
 }
+//---------------------------------------------------------------------------------------------
 
+
+//=============================================================================================
 int ULTRASONIC::get(int n) {
   // ピンをOUTPUTに設定（パルス送信のため）
   pinMode(trig_pin[n], OUTPUT);
