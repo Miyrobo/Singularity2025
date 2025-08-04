@@ -1,6 +1,7 @@
 #ifndef MOVE_H
 #define MOVE_H
 #include <Arduino.h>
+#include "sensors.h"
 
 class MOTOR {
  public:
@@ -29,7 +30,8 @@ class MOVE {
   int kickdir=0; //キックする方向
   void carryball(int balldir);
   void carryball(int balldir,int balldistance);
-
+  void carryball(Sensors& s);
+  void avoid_line(const Sensors& s); //ラインの回避行動
  private:
 };
 

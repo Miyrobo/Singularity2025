@@ -88,8 +88,6 @@ class LINE {
   int check(Sensors& c_sensors);
   int check_angel();
 
-  void avoid(Sensors& c_sensors,Actuator& c_act); //ライン回避
-
   void LEDset(int s);   //LED操作
   
   //void get();
@@ -126,6 +124,7 @@ class ULTRASONIC{
     int value[4];
     void get_all(); //全部測定
     int get(int n); //1つ測定
+    unsigned long last_update[4]={0}; //最終更新(ms)
   private:
     const byte echo_pin[4]={28,27,29,26};  //前から時計回り
     const byte trig_pin[4]={28,27,29,26};
@@ -146,7 +145,7 @@ class ULTRASONIC{
 
 class CAMERA{
   public:
-    void begin();
+    void setup();
     int get_goal();
     int get_own();
     int own_goal;
@@ -171,25 +170,7 @@ class CAMERA{
 
 
 
-// 押しボタン用クラス
-class PUSHSWITCH {
-private:
-  int pin;
-  bool state = 0;
-  bool lastStableState = 1;
-  bool lastReadState = 1;
-  unsigned long lastDebounceTime = 0;
-  const unsigned long debounceDelay = 10; // ms
-  bool lastReportedState = 1;
 
-  void update();
-
-public:
-  PUSHSWITCH(int pinno);
-
-  bool read();    // 安定化された現在の状態を返す
-  bool pushed();  // 押された瞬間（エッジ）を検出
-};
 
 int findLongestZeroGapWithAngle(int arr[12], float &centerAngleDeg,int &MAX);
 

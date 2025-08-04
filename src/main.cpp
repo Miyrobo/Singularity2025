@@ -7,33 +7,11 @@
 #include <device.h>
 #include <sensors.h>
 #include <game.h>
-
+#include <instance.h>
 
 #define MAX_Speed 100
 
 int WirelessControl=0;
-
-
-MOTOR motor;
-BALL ball;
-BNO gyro;
-ULTRASONIC ping;
-MOVE move;
-CAMERA openmv;
-PID pid;
-LINE line;
-PUSHSWITCH sw1(Pin_S1);
-PUSHSWITCH sw2(Pin_S2);
-PUSHSWITCH sw3(Pin_S3);
-
-
-TIMER timer[20];
-TIMER linetim;
-TIMER pingset;
-
-//構造体にロボットの状態をまとめる
-Sensors sensors{ball, gyro, ping, openmv, line};
-Actuator act{motor, move, pid};
 
 TIMER timfps;
 int fps=0;
@@ -47,11 +25,10 @@ int mode = 0;  // センサーモニターモード
 
 
 void setup() {
-  //ピン設定
-  pins_init(); 
+  pins_init(); //ピン設定
 
   tone(buzzer, 2714, 120);
-  openmv.begin();
+  openmv.setup();
   Display_Singularityinit();
   analogReadAveraging(5);
 
@@ -67,30 +44,9 @@ void setup() {
 
   timer[0].reset();
   if(SW1)dinogame();
-  //起動音
-  tone(buzzer, 2714, 120);
-  int i = 0;
-  while (timer[0].get() < 300) {
-    if (SW1 || SW2 || SW3) {
-      noTone(buzzer);
-      tone(buzzer, 2500,100);
-      break;
-    }
-    if (timer[0].get() > 200 && i == 2) {
-      noTone(buzzer);
-      tone(buzzer, 3047);
-      i++;
-    } else if (timer[0].get() > 100 && i == 1) {
-      noTone(buzzer);
-      tone(buzzer, 2876);
-      i++;
-    } else if (i == 0) {
-      noTone(buzzer);
-      tone(buzzer, 2714);
-      i++;
-    }
-  }
-  noTone(buzzer);
+  
+  Startup_sound(); //起動音
+
   while (SW1 || SW2 || SW3)
     ;
 }
@@ -138,7 +94,7 @@ void loop() {
       move.carryball(ball.dir + gyro.dir,ball.distance);
       move.dir=move.dir-gyro.dir;
     }else{
-      move.carryball(ball.dir,ball.distance);
+      move.carryball(sensors);
     }
 
     if (move.dir > 180)
@@ -175,7 +131,7 @@ void loop() {
     
   }
 
-  line.avoid(sensors,act); //ライン回避
+  move.avoid_line(sensors); //ライン回避
 
   
   if(abs(ball.dir)<15 && line.goalchance_count<0)line.goalchance_count++;

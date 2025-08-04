@@ -15,5 +15,26 @@ extern Adafruit_SSD1306 display;
 
 void Display_Singularityinit();
 
+void Startup_sound(); //起動音
+
+// 押しボタン用クラス
+class PUSHSWITCH {
+private:
+  int pin;
+  bool state = 0;
+  bool lastStableState = 1;
+  bool lastReadState = 1;
+  unsigned long lastDebounceTime = 0;
+  const unsigned long debounceDelay = 10; // ms
+  bool lastReportedState = 1;
+
+  void update();
+
+public:
+  PUSHSWITCH(int pinno);
+
+  bool read();    // 安定化された現在の状態を返す
+  bool pushed();  // 押された瞬間（エッジ）を検出
+};
 
 #endif

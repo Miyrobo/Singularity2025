@@ -269,194 +269,7 @@ int LINE::check_angel() {
   return Num_angel;
 }
 //---------------------------------------------------------------------------------------------
-void LINE::avoid(Sensors& c_sensors,Actuator& c_act) {  // ライン回避
-  int dir_move = c_act.move.dir;
-  int speed = c_act.move.speed;
-  int balldir=c_sensors.ball.dir;
 
-  if(dir!=1000){
-    dir_move = -dir-c_sensors.gyro.dir;
-    speed=80;
-    if(abs((c_act.move.speed-dir_move+360+180)%360)<90 && !isHalfout)
-      speed = 50;
-  }else
-  if (dir_move != 1000 && 1) { //ライン十字部分処理
-    if (depth[0]) {
-      if(abs(balldir)<20 && c_sensors.ball.distance < 1500){
-        goalchance_count++;
-      }else{
-        goalchance_count=0;
-      }
-      speed = 80;
-      if (dir_move < 90 && dir_move > -90) {
-        
-        if (dir_move < 20 && dir_move > -20) {
-          speed = 30;
-          if(depth[0]>=2){
-            dir_move = 1000;
-          }
-          if(depth[0]>=4){
-            dir_move=180;
-          }
-        } else if (dir_move > 0) {
-          if(dir_move < 30 && dir_move > -30) speed = 50;
-          dir_move = 90;
-        } else {
-          if(dir_move < 30 && dir_move > -30) speed = 50;
-          dir_move = -90;
-        }
-      }
-      if(goalchance_count > 600){
-        c_act.move.carryball(balldir);
-        dir_move=c_act.move.dir;
-        speed=50;
-      }
-    }else{
-      //line.goalchance_count=0;
-    }
-    if (depth[1]) { //左
-      speed = 80;
-      if (dir_move < 0 && dir_move > -180) {
-        if(balldir + c_sensors.gyro.dir > 0){
-          dir_move = balldir;
-        }else if (dir_move > -110 && dir_move < -70  && (abs(balldir) >= 25)) {
-          speed = 30; //25/7/14 停止から変更
-          if(depth[1]<=2){
-
-          }else if(depth[1]>=4){
-            dir_move = 90;
-          }else{
-            dir_move = 1000;
-          }
-        } else if (dir_move > -90 || abs(balldir) < 25) {
-          if(dir_move > -120 && dir_move < -70){
-            speed = 50;
-          }
-          dir_move=0;
-          if(depth[1]<=2){
-            dir_move=-10;
-          }else if(depth[1]>=4){
-            dir_move=10;
-          }
-          if(depth[0]){
-            dir_move=1000;
-          }
-        } else {
-          if(dir_move > -120 && dir_move < -70){
-            speed = 50;
-          }
-          dir_move=180;
-          if(depth[1]<=2){
-            dir_move=-170;
-          }else if(depth[1]>=4){
-            dir_move=170;
-          }
-          if(depth[2]){
-            dir_move=1000;
-          }
-        }
-      }
-    }
-    if (depth[2]) {
-      if (dir_move > 90 || dir_move < -90) {
-        speed = 80;
-        // if (dir_move > 150 || dir_move < -150) {
-        //   dir_move = 1000;
-        // } else if (dir_move > 0) {
-        //   dir_move = 90;
-        // } else {
-        //   dir_move = -90;
-        // }
-        if(balldir < 90 && balldir > -90){
-          if(balldir>0){
-            dir_move = 90;
-            if(depth[2]<=2){
-              dir_move = 100;
-            }else if(depth[2]>=4){
-              dir_move = 80;
-            }
-            if(depth[3]){
-              dir_move=1000;
-            }
-          }else{
-            dir_move = -90;
-            if(depth[2]<=2){
-              dir_move = -100;
-            }else if(depth[2]>=4){
-              dir_move = -80;
-            }
-            if(depth[1]){
-              dir_move=1000;
-            }
-          }
-        }else if (balldir > 160 || balldir < -160) { //ボール真後ろ
-          dir_move = 1000;
-        } else if (balldir > 0) { //ボール右
-          dir_move = 90;
-          if(depth[2]<=2){
-            dir_move = 100;
-          }else if(depth[2]>=4){
-            dir_move = 80;
-          }
-          if(depth[3]){
-            dir_move=1000;
-          }
-        } else { //ボール左
-          dir_move = -90;
-          if(depth[2]<=2){
-            dir_move = -100;
-          }else if(depth[2]>=4){
-            dir_move = -80;
-          }
-          if(depth[1]){
-            dir_move=1000;
-          }
-        }
-        
-      }
-    }
-    if (depth[3]) {
-      if (dir_move > 0 && dir_move < 180) {
-        speed = 80;
-        //dir_move=balldir+15; //裏技 ボールフィールド内なのに停止する事象の軽減
-        if(balldir + c_sensors.gyro.dir < 0){
-          dir_move = balldir;
-        }else if (dir_move < 100 && dir_move > 80 && (abs(balldir) >= 25)) {
-          speed = 30; //25/7/14 停止から変更
-          if(depth[3]<=2){
-            //速度だけ下げてそのままの動き
-          }else if(depth[3]>=4){
-            dir_move = -90;
-          }else{
-            dir_move = 1000;
-          }
-        } else if (dir_move < 90 || abs(balldir)<25) {
-          dir_move = 0;
-          if(depth[3]<=2){
-            dir_move=10;
-          }else if(depth[3]>=4){
-            dir_move=-10;
-          }
-          if(depth[0]){
-            dir_move=1000;
-          }
-        } else {
-          dir_move = -180;
-          if(depth[3]<=2){
-            dir_move=170;
-          }else if(depth[3]>=4){
-            dir_move=-170;
-          }
-          if(depth[3]){
-            dir_move=1000;
-          }
-        }
-      }
-    }
-  }
-  c_act.move.dir = dir_move;
-  c_act.move.speed = speed;
-}
 //---------------------------------------------------------------------------------------------
 void LINE::LEDset(int s = -1) {  // ラインのLED操作
   if (s == -1) {
@@ -490,6 +303,7 @@ int ULTRASONIC::get(int n) {
   duration = duration / 2;
   // cmに変換
   value[n] = int(duration / 29);
+  last_update[n] = millis();
   return value[n];
 }
 
@@ -565,48 +379,11 @@ void CAMERA::getorangeball() {
 
 void CAMERA::set_color(int c) { goal_color = c; }
 
-void CAMERA::begin() { OpenMV_UART.begin(9600); }
+void CAMERA::setup() { OpenMV_UART.begin(9600); }
 
-PUSHSWITCH::PUSHSWITCH(int pinno) {
-  pin = pinno;
-  pinMode(pin, INPUT);
-}
 
-void PUSHSWITCH::update() {
-  bool currentRead = read();
 
-  if (currentRead != lastReadState) {
-    lastDebounceTime = millis();  // 状態が変化 → タイマーリセット
-  }
 
-  if ((millis() - lastDebounceTime) >= debounceDelay) {
-    if (currentRead != lastStableState) {
-      lastStableState = currentRead;  // 状態確定
-    }
-  }
-
-  lastReadState = currentRead;
-}
-
-bool PUSHSWITCH::read() { return digitalRead(pin); }
-
-bool PUSHSWITCH::pushed() {
-  update();
-
-  bool result = false;
-
-  if (lastStableState != lastReportedState) {
-    if (lastReportedState == 1 && lastStableState == 0) {
-      result = true;  // 押された瞬間
-    }
-    lastReportedState = lastStableState;
-  }
-
-  return result;
-}
-
-// Created with the help of ChatGPT (OpenAI) - 2025/07/20
-// Function to find the longest gap of zeros and return center angle
 // 最も長い未検出(0)区間の中央角度を返す
 // - centerAngleDeg: 結果格納（°）
 // - 戻り値: 0=正常, 1=全検出, 2=全未検出
