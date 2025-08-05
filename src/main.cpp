@@ -4,7 +4,7 @@
 #include <game.h>
 #include <instance.h>
 
-#define MAX_Speed 100
+#define MAX_Speed 90
 
 int WirelessControl=0;
 

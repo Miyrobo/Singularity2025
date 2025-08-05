@@ -428,7 +428,7 @@ int findLongestZeroGapWithAngle(int arr[12], float& centerAngleDeg, int& MAX) {
 
   float midIdx = maxStart + (maxLen - 1) / 2.0;
   int angleIdx = ((int)round(midIdx)) % 12;
-  centerAngleDeg = angleIdx * 30.0f;
+  centerAngleDeg = -angleIdx * 30.0f;
   MAX = maxLen;
 
   return 0;  // 正常に検出
