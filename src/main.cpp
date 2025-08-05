@@ -316,16 +316,16 @@ void sensormonitor() {
       //十字部分 閾値判定
       int line_m[4][4] = {0};
       for (int i = 0; i < 4; i++) {
-        if (line.value[i][2] > line._th[i * 8 + 2]) {
+        if (line.s[i][2]) {
           line_m[i][0] = 1;
         }
-        if (line.value[i][3] > line._th[i * 8 + 3]) {
+        if (line.s[i][3]) {
           line_m[i][1] = 1;
         }
-        if (line.value[i][4] > line._th[i * 8 + 4]) {
+        if (line.s[i][4]) {
           line_m[i][2] = 1;
         }
-        if (line.value[i][6] > line._th[i * 8 + 6]) { //5ではなく6
+        if (line.s[i][6]) { //5ではなく6
           line_m[i][3] = 1;
         }
       }
@@ -349,7 +349,7 @@ void sensormonitor() {
         }
 
         //外側部分 描画
-        if (line.value[i][1] > line._th[i * 8 +1]) {
+        if (line.s[i][1]) {
           display.fillRect(
               64 + cos(i * PI / 2) * (5 - 0) * 6 - sin(i * PI / 2) * 6 - 3,
               32 + sin(i * PI / 2) * (5 - 0) * 6 + cos(i * PI / 2) * 6 - 3, 6,
@@ -362,7 +362,7 @@ void sensormonitor() {
         }
 
         //円部分 描画
-        if (line.value[i][0] > line._th[i * 8 + 0]) {
+        if (line.s[i][0]) {
           display.fillRect(
               64 + cos(i * PI / 2) * (5 - 0) * 6 + sin(i * PI / 2) * 6 - 3,
               32 + sin(i * PI / 2) * (5 - 0) * 6 - cos(i * PI / 2) * 6 - 3, 6,
@@ -374,7 +374,7 @@ void sensormonitor() {
               2, SSD1306_WHITE);
         }
 
-        if (line.value[i][7] > line._th[i * 8 + 7]) {
+        if (line.s[i][7]) {
           display.fillRect(64 + cos((i / 2.0 + 1.0 / 6.0) * PI) * 12 - 3,
                            32 + sin((i / 2.0 + 1.0 / 6) * PI) * 12 - 3, 6, 6,
                            SSD1306_WHITE);
@@ -383,7 +383,7 @@ void sensormonitor() {
                            32 + sin((i / 2.0 + 1.0 / 6) * PI) * 12 - 1, 2, 2,
                            SSD1306_WHITE);
         }
-        if (line.value[i][5] > line._th[i * 8 + 5]) {
+        if (line.s[i][5]) {
           display.fillRect(64 + cos((i / 2.0 - 1.0 / 6.0) * PI) * 12 - 3,
                            32 + sin((i / 2.0 - 1.0 / 6) * PI) * 12 - 3, 6, 6,
                            SSD1306_WHITE);
