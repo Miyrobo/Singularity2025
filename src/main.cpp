@@ -85,18 +85,7 @@ void loop() {
   ball.get(); //ボール位置取得
 
   if (ball.isExist) { //ボール見えた
-    if(move.kickdir == 0){
-      move.carryball(ball.dir + gyro.dir,ball.distance);
-      move.dir=move.dir-gyro.dir;
-    }else{
-      move.carryball(sensors);
-    }
-
-    if (move.dir > 180)
-      move.dir -= 360;
-    else if (move.dir < -180)
-      move.dir += 360;
-
+    move.carryball(sensors);
     timer[13].reset();
   } else {
     move.dir = 1000;
