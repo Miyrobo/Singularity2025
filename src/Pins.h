@@ -8,9 +8,9 @@
 #define Pin_Ball2 A16
 
 #define Pin_Line1 A0 //ラインセンサ マルチプレクサ使用
-#define Pin_Line2 A1
+#define Pin_Line2 A3
 #define Pin_Line3 A2
-#define Pin_Line4 A3
+#define Pin_Line4 A1
 
 #define Pin_LineLED 13 //ラインのLED点灯状態切り替え
 

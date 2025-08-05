@@ -334,16 +334,16 @@ void sensormonitor() {
         for (int j = 0; j < 4; j++) {
           if (line_m[i][j] > 0) {
             display.fillRect(64 + cos(i * PI / 2) * (5 - j) * 6 - 3,
-                             32 - sin(i * PI / 2) * (5 - j) * 6 - 3, 6, 6,
+                             32 + sin(i * PI / 2) * (5 - j) * 6 - 3, 6, 6,
                              SSD1306_WHITE);
           } else {
             display.fillRect(64 + cos(i * PI / 2) * (5 - j) * 6 - 1,
-                             32 - sin(i * PI / 2) * (5 - j) * 6 - 1, 2, 2,
+                             32 + sin(i * PI / 2) * (5 - j) * 6 - 1, 2, 2,
                              SSD1306_WHITE);
           }
           if (lp == i * 4 + j) {
             display.drawCircle(64 + cos(i * PI / 2) * (5 - j) * 6,
-                               32 - sin(i * PI / 2) * (5 - j) * 6, 7,
+                               32 + sin(i * PI / 2) * (5 - j) * 6, 7,
                                SSD1306_WHITE);
           }
         }
@@ -351,81 +351,48 @@ void sensormonitor() {
         //外側部分 描画
         if (line.value[i][1] > line._th[i * 8 +1]) {
           display.fillRect(
-              64 + cos(i * PI / 2) * (5 - 0) * 6 + sin(i * PI / 2) * 6 - 3,
-              32 - sin(i * PI / 2) * (5 - 0) * 6 + cos(i * PI / 2) * 6 - 3, 6,
+              64 + cos(i * PI / 2) * (5 - 0) * 6 - sin(i * PI / 2) * 6 - 3,
+              32 + sin(i * PI / 2) * (5 - 0) * 6 + cos(i * PI / 2) * 6 - 3, 6,
               6, SSD1306_WHITE);
         } else {
           display.fillRect(
-              64 + cos(i * PI / 2) * (5 - 0) * 6 + sin(i * PI / 2) * 6 - 1,
-              32 - sin(i * PI / 2) * (5 - 0) * 6 + cos(i * PI / 2) * 6 - 1, 2,
+              64 + cos(i * PI / 2) * (5 - 0) * 6 - sin(i * PI / 2) * 6 - 1,
+              32 + sin(i * PI / 2) * (5 - 0) * 6 + cos(i * PI / 2) * 6 - 1, 2,
               2, SSD1306_WHITE);
         }
 
         //円部分 描画
         if (line.value[i][0] > line._th[i * 8 + 0]) {
           display.fillRect(
-              64 + cos(i * PI / 2) * (5 - 0) * 6 - sin(i * PI / 2) * 6 - 3,
-              32 - sin(i * PI / 2) * (5 - 0) * 6 - cos(i * PI / 2) * 6 - 3, 6,
+              64 + cos(i * PI / 2) * (5 - 0) * 6 + sin(i * PI / 2) * 6 - 3,
+              32 + sin(i * PI / 2) * (5 - 0) * 6 - cos(i * PI / 2) * 6 - 3, 6,
               6, SSD1306_WHITE);
         } else {
           display.fillRect(
-              64 + cos(i * PI / 2) * (5 - 0) * 6 - sin(i * PI / 2) * 6 - 1,
-              32 - sin(i * PI / 2) * (5 - 0) * 6 - cos(i * PI / 2) * 6 - 1, 2,
+              64 + cos(i * PI / 2) * (5 - 0) * 6 + sin(i * PI / 2) * 6 - 1,
+              32 + sin(i * PI / 2) * (5 - 0) * 6 - cos(i * PI / 2) * 6 - 1, 2,
               2, SSD1306_WHITE);
         }
 
-        if (line.value[i][5] > line._th[i * 8 + 5]) { //6ではなく5
+        if (line.value[i][7] > line._th[i * 8 + 7]) {
           display.fillRect(64 + cos((i / 2.0 + 1.0 / 6.0) * PI) * 12 - 3,
-                           32 - sin((i / 2.0 + 1.0 / 6) * PI) * 12 - 3, 6, 6,
+                           32 + sin((i / 2.0 + 1.0 / 6) * PI) * 12 - 3, 6, 6,
                            SSD1306_WHITE);
         } else {
           display.fillRect(64 + cos((i / 2.0 + 1.0 / 6.0) * PI) * 12 - 1,
-                           32 - sin((i / 2.0 + 1.0 / 6) * PI) * 12 - 1, 2, 2,
+                           32 + sin((i / 2.0 + 1.0 / 6) * PI) * 12 - 1, 2, 2,
                            SSD1306_WHITE);
         }
-        if (line.value[i][7] > line._th[i * 8 + 7]) {
+        if (line.value[i][5] > line._th[i * 8 + 5]) {
           display.fillRect(64 + cos((i / 2.0 - 1.0 / 6.0) * PI) * 12 - 3,
-                           32 - sin((i / 2.0 - 1.0 / 6) * PI) * 12 - 3, 6, 6,
+                           32 + sin((i / 2.0 - 1.0 / 6) * PI) * 12 - 3, 6, 6,
                            SSD1306_WHITE);
         } else {
           display.fillRect(64 + cos((i / 2.0 - 1.0 / 6.0) * PI) * 12 - 1,
-                           32 - sin((i / 2.0 - 1.0 / 6) * PI) * 12 - 1, 2, 2,
+                           32 + sin((i / 2.0 - 1.0 / 6) * PI) * 12 - 1, 2, 2,
                            SSD1306_WHITE);
         }
-      }
-      //エンジェルライン処理 25/07/20
-      for(int i=0;i<4;i++){
-        line.value_angel[(i*3 + 11)%12] = line.value[i][7]>line._th[i*8+7]?1:0;
-        line.value_angel[i*3 + 0]       = line.value[i][6]>line._th[i*8+6]?1:0;
-        line.value_angel[i*3 + 1]       = line.value[i][5]>line._th[i*8+5]?1:0;
-      }
-
-      float line__angle;
-      int max;
-      if(findLongestZeroGapWithAngle(line.value_angel,line__angle,max)==0){
-        int mem_linedir=line.sdir;
-        line.sdir=line__angle;
-        int diff = ((mem_linedir - line.sdir + 540) % 360) - 180;
-
-        if(abs(diff)>120 && mem_linedir!=1000){ //前回との差が120°以上
-          line.isHalfout=!line.isHalfout;
-        }
-
-        if(line.isHalfout){
-          line.dir=line.sdir+180;
-        }else{
-          line.dir=line.sdir;
-        }
-        if(line.dir>180)line.dir-=360;
-
-        display.drawLine(64, 32, 64 + cos(line.dir * PI / 180.0) * 10, 32 - sin(line.dir * PI / 180.0) * 10, SSD1306_WHITE);
-      }else{
-        line.sdir=1000;
-        if(!line.isHalfout){
-          line.dir=1000;
-        }
-      }
-      
+      }      
       
       
       //シリアル出力
@@ -436,8 +403,6 @@ void sensormonitor() {
       Serial.println(line.value32[31]);
       
       display.setTextSize(1);
-      display.setCursor(0, 40);
-      display.print(max);
       display.setCursor(0, 0);
       display.print(line.value[lp / 4][lp % 4 + 2]);
       display.setCursor(0, 20);
@@ -515,10 +480,10 @@ void sensormonitor() {
               digitalWrite(Pin_MUX1, 0);
             }
             delayMicroseconds(500);
-            line[0][i] = analogRead(A0);
-            line[1][i] = analogRead(A1);
-            line[2][i] = analogRead(A2);
-            line[3][i] = analogRead(A3);
+            line[0][i] = analogRead(Pin_Line1);
+            line[1][i] = analogRead(Pin_Line2);
+            line[2][i] = analogRead(Pin_Line3);
+            line[3][i] = analogRead(Pin_Line4);
             delayMicroseconds(100);
 
             if (line[0][i] > max_g[i]) max_g[i] = line[0][i];

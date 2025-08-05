@@ -167,10 +167,10 @@ void LINE::get_value() {
       digitalWrite(Pin_MUX1, 0);
     }
     delayMicroseconds(1);
-    value32[i] = analogRead(A0);
-    value32[i + 8] = analogRead(A1);
-    value32[i + 16] = analogRead(A2);
-    value32[i + 24] = analogRead(A3);
+    value32[i] = analogRead(Pin_Line1);
+    value32[i + 8] = analogRead(Pin_Line2);
+    value32[i + 16] = analogRead(Pin_Line3);
+    value32[i + 24] = analogRead(Pin_Line4);
     // delayMicroseconds(1);
   }
   Num_white = 0;
@@ -187,9 +187,9 @@ void LINE::get_value() {
   }
   // エンジェル
   for (int i = 0; i < 4; i++) {
-    s_angel[(i * 3 + 11) % 12] = s[i][7];
+    s_angel[(i * 3 + 11) % 12] = s[i][5];
     s_angel[i * 3 + 0] = s[i][6];
-    s_angel[i * 3 + 1] = s[i][5];
+    s_angel[i * 3 + 1] = s[i][7];
   }
 }
 //---------------------------------------------------------------------------------------------
@@ -428,7 +428,7 @@ int findLongestZeroGapWithAngle(int arr[12], float& centerAngleDeg, int& MAX) {
 
   float midIdx = maxStart + (maxLen - 1) / 2.0;
   int angleIdx = ((int)round(midIdx)) % 12;
-  centerAngleDeg = -angleIdx * 30.0f;
+  centerAngleDeg = angleIdx * 30.0f;
   MAX = maxLen;
 
   return 0;  // 正常に検出

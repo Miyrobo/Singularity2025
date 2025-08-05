@@ -228,9 +228,9 @@ void MOVE::avoid_line(const Sensors& s) {  // ライン回避
     float x = sin(radians(dir_move)) * speed,
           y = cos(radians(dir_move)) * speed;
     if (x > 0) {
-      m_vector[3] = x;
+      m_vector[1] = x;
     } else {
-      m_vector[1] = -x;
+      m_vector[3] = -x;
     }
     if (y > 0) {
       m_vector[0] = y;
@@ -249,7 +249,7 @@ void MOVE::avoid_line(const Sensors& s) {  // ライン回避
       }
     }
 
-    x = m_vector[3] - m_vector[1];
+    x = m_vector[1] - m_vector[3];
     y = m_vector[0] - m_vector[2];
     dir_move = degrees(atan2(x, y));
     speed = sqrt(x * x + y * y);
