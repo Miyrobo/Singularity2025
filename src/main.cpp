@@ -1,11 +1,6 @@
 #include <Arduino.h>
 #include <EEPROM.h>
-#include <UI.h>
-#include <SPI.h>
-#include <Wire.h>
-#include <move.h>
 #include <device.h>
-#include <sensors.h>
 #include <game.h>
 #include <instance.h>
 
