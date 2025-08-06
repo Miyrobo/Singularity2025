@@ -185,6 +185,7 @@ void LINE::get_value() {
       }
     }
   }
+  if(Num_white==0 && !isHalfout)this->time_onLine=millis();
   // エンジェル
   for (int i = 0; i < 4; i++) {
     s_angel[(i * 3 + 11) % 12] = s[i][5];

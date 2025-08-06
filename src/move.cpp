@@ -158,6 +158,11 @@ void MOVE::carryball(int balldir) {
 
 void MOVE::carryball(Sensors& s) {
   BALL& ball = s.ball;
+  if(!ball.isExist){
+    this->speed=0;
+    this->dir=1000;
+    return;
+  }
   int balldir = ball.dir;
   int balldistance = ball.distance;
   if (balldir <= 5 && balldir >= -5) {
@@ -190,6 +195,9 @@ void MOVE::carryball(Sensors& s) {
     if (s.line.Num_white > 0 && a > 50) {
       a = 50;
     }
+    if (s.line.Num_white > 0 && a > 30 && abs(ball.dir)>90) {
+      a = 30;
+    }
     if (balldir > 0) {
       this->dir = balldir + a;
     } else {
@@ -203,30 +211,41 @@ void MOVE::avoid_line(const Sensors& s) {  // ライン回避
   // BALL& ball = s.ball;
   LINE& line = s.line;
   BNO& gyro = s.gyro;
+  if(dir_move==1000)this->speed=0;
+  int speed = this->speed;
 
-  if (line.dir != 1000 && line.Num_angel>1 || line.isHalfout) {  // エンジェルライン2個以上反応あり
+  if (line.Num_angel>=2 || line.isHalfout) {  // エンジェルライン2個以上反応あり
     if (line.isHalfout) {
-      dir_move=line.dir;
-      speed=80;
+      dir_move=line.dir;  //半分以上外に出ているなら、フィールド内への復帰最優先
+      speed=90;
     } else {
       float x, y;
-      if (dir_move == 1000) speed = 0;
-      x = -sin(radians(line.dir - dir_move)) * speed;
-      y = cos(radians(line.dir - dir_move)) * speed;
+      x = -sin(radians(line.dir - dir_move)) * speed;  //ラインに垂直な方向
+      y = cos(radians(line.dir - dir_move)) * speed;   //ラインに平行な方向
 
-      y = 0;
+      if(y<0){
+        if(line.lmax>=8 || (line.lmax>=6 && line.Num_angel>=4)){
+          y=0.0;
+        }else if(line.lmax>=6){
+          y = 40.0;  // フィールド内に戻る強さ
+        }else{
+          y = 80.0;  // フィールド内に戻る強さ
+        }
+      }
+      
+      
 
-      y = 80.0;  // ライン内側に戻る強さ
-
-      dir_move = degrees(atan2(x, y)) + line.dir - gyro.dir;
+      dir_move = degrees(atan2(x, y)) + line.dir - gyro.dir; //※ (x,y)はline.dirを基準にした座標系のため
       speed = sqrt(x * x + y * y);
       if (abs(speed) < 20) speed = 0;
     }
 
-  } else if (line.Num_white > 0) {
-    float m_vector[4] = {0};
-    float x = sin(radians(dir_move)) * speed,
+  } else if (line.Num_white > 0) { //エンジェルライン反応なし、十字ライン反応あり
+    float m_vector[4] = {0}; // {前,右,後,左} 
+    float x = sin(radians(dir_move)) * speed, //進行方向をx,yに分解
           y = cos(radians(dir_move)) * speed;
+
+    //4つのベクトルに分解
     if (x > 0) {
       m_vector[1] = x;
     } else {
@@ -239,25 +258,37 @@ void MOVE::avoid_line(const Sensors& s) {  // ライン回避
     }
 
     for (int i = 0; i < 4; i++) {
-      if (line.depth[i]) {
-        if (line.depth[i] <= 1)
-          m_vector[i] *= 0.3;  // 30%に減速
-        else if (line.depth[i] >= 4)
-          m_vector[i] = -40;  // 少し回避
-        else
+      if(line.depth[i]){
+        if(millis() - line.time_onLine > 200){
+         m_vector[i] *= 0.5;  // 50%に減速
+        }else{
           m_vector[i] = 0;
+        }
       }
+      
+      // if (line.depth[i]) {
+      //   if (line.depth[i] <= 1)           //最も外側のラインが反応
+      //     m_vector[i] *= 0.5;  // 30%に減速
+      //   else if (line.depth[i] <= 2)           //2番目に外側のラインが反応
+      //     m_vector[i] *= 0.4;  // 20%に減速
+      //   else if (line.depth[i] >= 4)      //十字部分内側が反応
+      //     m_vector[i] = -40;  // 少し回避
+      //   else                              //十字部分反応あり
+      //     m_vector[i] = 0;                //ラインアウト方向への移動を制限
+      // }
     }
 
-    x = m_vector[1] - m_vector[3];
+    x = m_vector[1] - m_vector[3]; //m_vector4つを足し合わせる → 新しい進行方向
     y = m_vector[0] - m_vector[2];
     dir_move = degrees(atan2(x, y));
     speed = sqrt(x * x + y * y);
-    if (x * y == 0) speed *= 1.5;
-    if (abs(speed) < 20) speed = 0;
+    if (x * y == 0) speed *= 1.5;   //少しスピードアップ
+    if(speed > this->speed)speed=this->speed;
+    if (abs(speed) < 20) speed = 0; //再計算後、速度が遅い場合は停止
   }
 
   this->dir = dir_move;
+  this->speed = speed;
 }
 
 int PID::run(double a) {

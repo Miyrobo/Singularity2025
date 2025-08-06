@@ -89,7 +89,7 @@ class LINE {
   int check_angel();
 
   void LEDset(int s);   //LED操作
-  
+  unsigned long time_onLine=0;
   //void get();
 
   int _th[NUM_lines]; //閾値

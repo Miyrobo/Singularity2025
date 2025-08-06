@@ -18,6 +18,7 @@ int hold_th; //ホールドセンサ 閾値
 void sensormonitor();
 int mode = 0;  // センサーモニターモード
 
+void Wireless_debug(); //無線デバッグ
 
 void setup() {
   pins_init(); //ピン設定
@@ -70,8 +71,8 @@ void loop() {
   motor.brake=true;
 
   gyro.get();
-//ライン読み取り
-  line.get_value();
+  //ライン読み取り
+  line.get_value(); 
   line.check(sensors);
 
 
@@ -117,6 +118,16 @@ void loop() {
 
   move.avoid_line(sensors); //ライン回避
 
+  //ペナルティエリア抜け出し
+  if(move.dir==1000) move.speed=0;
+  int x=sin(radians(move.dir))*move.speed;
+  if(ball.dir > 50 && ball.dir < 130 && abs(x) < 10 && move.speed < 50 && ball.distance>2500){
+    move.dir=0;
+    move.speed=80;
+  }else if(ball.dir < -50 && ball.dir > -130 && abs(x) < 10 && move.speed < 50 && ball.distance>2500){
+    move.dir=0;
+    move.speed=80;
+  }
   
   if(abs(ball.dir)<15 && line.goalchance_count<0)line.goalchance_count++;
   //line.goalchance_count=0; //機能無効化
@@ -127,6 +138,8 @@ void loop() {
   }else{
     timer[7].reset();
   }
+  if(move.speed>MAX_Speed) //スピードを制限
+    move.speed=MAX_Speed;
   int kickdir = 0;
   if (timer[11].get() < 500 && ball.isExist && 0) {  // ボール捕捉時 今は無効化
     if (ping.value[1] < 60 && ping.value[0] > 85) {        // ゴールは左  
@@ -148,13 +161,6 @@ void loop() {
   }
   move.kickdir=kickdir;
 
-
-
-  if (!TS) {
-    motor.stop();
-  }
-
-
   if (timer[7].get() > 100 && !kick && timer[9].get() > 600 && abs(ball.dir) <15 &&
       abs(gyro.dir - kickdir) < 10 && !WirelessStop) {  //キックする条件
     kicker(1);
@@ -174,14 +180,27 @@ void loop() {
   }else{
     digitalWrite(13, HIGH);
   }
-  if (timer_lift.get()<100) {  //持ち上げで停止
+  if (timer_lift.get()<100) {  //持ち上げられた
     motor.stop();
     line.isHalfout = false; //押し出し復帰処理
   } else {
     
   }
 
+
+  void Wireless_debug();  //ESP32使用 無線デバッグ機能
+
+  motor.pwm_out(); //モーター出力
+
+}
+
+//-----------------------------------------------------------------------------------------------------------------------
+//メインループここまで
+
+
+
   //ESP32使用 無線デバッグ機能
+void Wireless_debug(){
   if(WirelessStop)motor.stop();
   int c=Serial5.read();
 
@@ -236,14 +255,7 @@ void loop() {
   }
   ESP32_UART.println(ball.dir);
   //無線デバッグ機能 ここまで
-
-  motor.pwm_out(); //モーター出力
-
 }
-
-//-----------------------------------------------------------------------------------------------------------------------
-//メインループここまで
-
 
 #define MODE_MAX 5
 
