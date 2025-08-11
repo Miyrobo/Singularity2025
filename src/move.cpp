@@ -158,14 +158,14 @@ void MOVE::carryball(int balldir) {
 
 void MOVE::carryball(Sensors& s) {
   BALL& ball = s.ball;
-  if(!ball.isExist){
-    this->speed=0;
-    this->dir=1000;
+  if (!ball.isExist) {
+    this->speed = 0;
+    this->dir = 1000;
     return;
   }
   int balldir = ball.dir;
   int balldistance = ball.distance;
-  if (balldir <= 5 && balldir >= -5) {
+  if (balldir <= 10 && balldir >= -10) {
     this->dir = 0;
   } else if (balldir <= 15 && balldir >= -15) {
     if (balldir > 0) {
@@ -175,7 +175,7 @@ void MOVE::carryball(Sensors& s) {
     }
   } else {
     int a;
-    int distance_th = 3000;
+    int distance_th = 3200;
     if (balldir <= 30 && balldir >= -30) {
       if (balldistance < distance_th) {
         a = 50;
@@ -195,7 +195,7 @@ void MOVE::carryball(Sensors& s) {
     if (s.line.Num_white > 0 && a > 50) {
       a = 50;
     }
-    if (s.line.Num_white > 0 && a > 30 && abs(ball.dir)>90) {
+    if (s.line.Num_white > 0 && a > 30 && abs(ball.dir) > 90) {
       a = 30;
     }
     if (balldir > 0) {
@@ -211,41 +211,51 @@ void MOVE::avoid_line(const Sensors& s) {  // ライン回避
   // BALL& ball = s.ball;
   LINE& line = s.line;
   BNO& gyro = s.gyro;
-  if(dir_move==1000)this->speed=0;
+  ULTRASONIC& ping = s.ping;
+  if (dir_move == 1000) this->speed = 0;
   int speed = this->speed;
 
-  if (line.Num_angel>=2 || line.isHalfout) {  // エンジェルライン2個以上反応あり
+  if (line.Num_angel >= 2 ||
+      line.isHalfout) {  // エンジェルライン2個以上反応あり
     if (line.isHalfout) {
-      dir_move=line.dir;  //半分以上外に出ているなら、フィールド内への復帰最優先
-      speed=90;
+      dir_move =
+          line.dir;  // 半分以上外に出ているなら、フィールド内への復帰最優先
+      speed = 90;
     } else {
       float x, y;
-      x = -sin(radians(line.dir - dir_move)) * speed;  //ラインに垂直な方向
+      x = -sin(radians(line.dir - dir_move)) * speed;  // ラインに垂直な方向
       y = cos(radians(line.dir - dir_move)) * speed;   //ラインに平行な方向
 
-      if(y<0){
-        if(line.lmax>=8 || (line.lmax>=6 && line.Num_angel>=4)){
-          y=0.0;
-        }else if(line.lmax>=6){
-          y = 40.0;  // フィールド内に戻る強さ
-        }else{
-          y = 80.0;  // フィールド内に戻る強さ
-        }
+      if (line.lmax >= 8) {
+        y = 50.0;
+      } else {
+        y = 80.0;
       }
-      
-      
 
-      dir_move = degrees(atan2(x, y)) + line.dir - gyro.dir; //※ (x,y)はline.dirを基準にした座標系のため
+      // if(y<0){
+      //   if(line.lmax>=9 || (line.lmax>=6 && line.Num_angel>=4 && 0)){
+      //     y=0.0;
+      //   }else if(line.lmax>=6){
+      //     y = 40.0;  // フィールド内に戻る強さ
+      //   }else{
+      //     y = 80.0;  // フィールド内に戻る強さ
+      //   }
+      //   if(line.Num_angel>=4)x=0.0;
+      // }
+
+      dir_move = degrees(atan2(x, y)) + line.dir -
+                 gyro.dir;  // ※ (x,y)はline.dirを基準にした座標系のため
       speed = sqrt(x * x + y * y);
       if (abs(speed) < 20) speed = 0;
     }
 
-  } else if (line.Num_white > 0) { //エンジェルライン反応なし、十字ライン反応あり
-    float m_vector[4] = {0}; // {前,右,後,左} 
-    float x = sin(radians(dir_move)) * speed, //進行方向をx,yに分解
-          y = cos(radians(dir_move)) * speed;
+  } else if (line.Num_white >
+             0) {  // エンジェルライン反応なし、十字ライン反応あり
+    float m_vector[4] = {0};                   // {前,右,後,左}
+    float x = sin(radians(dir_move)) * speed,  // 進行方向をx,yに分解
+        y = cos(radians(dir_move)) * speed;
 
-    //4つのベクトルに分解
+    // 4つのベクトルに分解
     if (x > 0) {
       m_vector[1] = x;
     } else {
@@ -258,33 +268,41 @@ void MOVE::avoid_line(const Sensors& s) {  // ライン回避
     }
 
     for (int i = 0; i < 4; i++) {
-      if(line.depth[i]){
-        if(millis() - line.time_onLine > 200){
-         m_vector[i] *= 0.5;  // 50%に減速
-        }else{
-          m_vector[i] = 0;
-        }
-      }
-      
-      // if (line.depth[i]) {
-      //   if (line.depth[i] <= 1)           //最も外側のラインが反応
-      //     m_vector[i] *= 0.5;  // 30%に減速
-      //   else if (line.depth[i] <= 2)           //2番目に外側のラインが反応
-      //     m_vector[i] *= 0.4;  // 20%に減速
-      //   else if (line.depth[i] >= 4)      //十字部分内側が反応
-      //     m_vector[i] = -40;  // 少し回避
-      //   else                              //十字部分反応あり
-      //     m_vector[i] = 0;                //ラインアウト方向への移動を制限
+      // if(line.depth[i]){
+      //   if(millis() - line.time_onLine > 200){
+      //     m_vector[i] *= 0.5;  // 50%に減速
+      //   }else{
+      //     m_vector[i] = 0;
+      //   }
       // }
+
+      if (line.depth[i]) {
+        if (line.depth[i] <= 1)       // 最も外側のラインが反応
+          m_vector[i] *= 0.5;         // 50%に減速
+        else if (line.depth[i] <= 2)  // 2番目に外側のラインが反応
+          m_vector[i] *= 0.4;         // 40%に減速
+        else if (line.depth[i] >= 4)  // 十字部分内側が反応
+          m_vector[i] = -40;          // 少し回避
+        else                          // 十字部分反応あり
+          m_vector[i] = 0;  // ラインアウト方向への移動を制限
+      }
+    }
+    if (line.depth[0] == 0 && ping.value[2]<35) {
+      if (line.depth[1] && ping.value[1] > 60 && m_vector[0]<80) {
+        m_vector[2] = -80;
+      } else if (line.depth[3] && ping.value[0] > 60 && m_vector[0]<80) {
+        m_vector[2] = -80;
+      }
     }
 
-    x = m_vector[1] - m_vector[3]; //m_vector4つを足し合わせる → 新しい進行方向
+    x = m_vector[1] - m_vector[3];  // m_vector4つを足し合わせる →
+                                    // 新しい進行方向
     y = m_vector[0] - m_vector[2];
     dir_move = degrees(atan2(x, y));
     speed = sqrt(x * x + y * y);
-    if (x * y == 0) speed *= 1.5;   //少しスピードアップ
-    if(speed > this->speed)speed=this->speed;
-    if (abs(speed) < 20) speed = 0; //再計算後、速度が遅い場合は停止
+    if (x * y == 0) speed *= 1.5;  // 少しスピードアップ
+    if (speed > this->speed) speed = this->speed;
+    if (abs(speed) < 20) speed = 0;  // 再計算後、速度が遅い場合は停止
   }
 
   this->dir = dir_move;
@@ -303,9 +321,9 @@ int PID::run(double a) {
   dt = t1 - t0;
   if (dt >= 5000) {  // 5msごと
     t0 = t1;
-    da = a - b;         // 今回-前回
-    b = a;              // 前回の値
-    if (abs(a) < 30) {  // 偏差が小さいときのみ積分
+    da = a - b;                                   // 今回-前回
+    b = a;                                        // 前回の値
+    if (abs(a) < 30) {                            // 偏差が小さいときのみ積分
       stack += Ki * a * (double)dt / 1000 / 100;  // Iのみ先に係数をかける
     }
     v = da / (double)dt * 1000 * 100;  // 微分

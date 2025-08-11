@@ -191,6 +191,9 @@ void LINE::get_value() {
     s_angel[(i * 3 + 11) % 12] = s[i][5];
     s_angel[i * 3 + 0] = s[i][6];
     s_angel[i * 3 + 1] = s[i][7];
+    value_angel[(i * 3 + 11) % 12] = value[i][5];
+    value_angel[i * 3 + 0] = value[i][6];
+    value_angel[i * 3 + 1] = value[i][7];
   }
 }
 //---------------------------------------------------------------------------------------------

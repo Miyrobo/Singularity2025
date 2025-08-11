@@ -257,6 +257,7 @@ void gameover() {
 
 void dinogame()
 {
+  display.setRotation(0);
   reset();
   while (1) {
     int nn;

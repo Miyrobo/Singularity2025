@@ -35,14 +35,14 @@ void setup() {
   motor.pwm_out();
   gyro.setup();
   
-  //EEPROM.write(34, 100);
+  //EEPROM.write(34, 100); //ホールドセンサ閾値
   hold_th = EEPROM.read(34);
 
   timer[0].reset();
   if(SW1)dinogame();
   
   Startup_sound(); //起動音
-
+  
   while (SW1 || SW2 || SW3)
     ;
 }
@@ -76,7 +76,7 @@ void loop() {
   line.check(sensors);
 
 
-  if (pingset.get() > 200 && 0) { //超音波を200ms間隔で読み取り
+  if (pingset.get() > 200) { //超音波を200ms間隔で読み取り
     ping.get(0);
     ping.get(1);
     ping.get(2);
@@ -93,10 +93,10 @@ void loop() {
   }
   
 
-  if(timer[13].get()>100 && 0){ //ボールが見えずに0.1秒経過 定位置復帰
+  if(timer[13].get()>100){ //ボールが見えずに0.1秒経過 定位置復帰
     int pingdiff = ping.value[0]-ping.value[1]; //右に行くほど+
     move.speed = 80;
-    if(ping.value[2]>70){
+    if(ping.value[2]>90){
       if(pingdiff > 20){
         move.dir = -135;
       }else if(pingdiff < -20){
@@ -119,15 +119,15 @@ void loop() {
   move.avoid_line(sensors); //ライン回避
 
   //ペナルティエリア抜け出し
-  if(move.dir==1000) move.speed=0;
-  int x=sin(radians(move.dir))*move.speed;
-  if(ball.dir > 50 && ball.dir < 130 && abs(x) < 10 && move.speed < 50 && ball.distance>2500){
-    move.dir=0;
-    move.speed=80;
-  }else if(ball.dir < -50 && ball.dir > -130 && abs(x) < 10 && move.speed < 50 && ball.distance>2500){
-    move.dir=0;
-    move.speed=80;
-  }
+  // if(move.dir==1000) move.speed=0;
+  // int x=sin(radians(move.dir))*move.speed;
+  // if(ball.dir > 50 && ball.dir < 130 && abs(x) < 10 && move.speed < 50 && ball.distance>2500){
+  //   move.dir=0;
+  //   move.speed=80;
+  // }else if(ball.dir < -50 && ball.dir > -130 && abs(x) < 10 && move.speed < 50 && ball.distance>2500){
+  //   move.dir=0;
+  //   move.speed=80;
+  // }
   
   if(abs(ball.dir)<15 && line.goalchance_count<0)line.goalchance_count++;
   //line.goalchance_count=0; //機能無効化
@@ -141,25 +141,35 @@ void loop() {
   if(move.speed>MAX_Speed) //スピードを制限
     move.speed=MAX_Speed;
   int kickdir = 0;
-  if (timer[11].get() < 500 && ball.isExist && 0) {  // ボール捕捉時 今は無効化
-    if (ping.value[1] < 60 && ping.value[0] > 85) {        // ゴールは左  
-      if(ping.value[2]>100 ||1) //敵陣
-      kickdir = -30;
-      else
-        kickdir = -10;
-      motor.cal_power(move.dir, move.speed, pid.run((gyro.dir - kickdir)/6));
-    } else if (ping.value[1] > 85 && ping.value[0] < 60) {
-      if(ping.value[2]>100 ||1) //敵陣
-        kickdir = 30;
-      else
-        kickdir = 10;
-      motor.cal_power(move.dir, move.speed, pid.run((gyro.dir - kickdir)/4));
-    } else
-      motor.cal_power(move.dir, move.speed, pid.run(gyro.dir/4));
-  } else {
-    motor.cal_power(move.dir, move.speed, pid.run(gyro.dir));
+  // if (timer[11].get() < 100000 && ball.isExist && abs(ball.dir)< 60 && line.Num_white==0) {  // ボール捕捉時
+  //   if (ping.value[1] < 60 && ping.value[0] > 85) {        // ゴールは左  
+  //     if(ping.value[2]>100 ||1) //敵陣
+  //     kickdir = -30;
+  //     else
+  //       kickdir = -10;
+  //     motor.cal_power(move.dir, move.speed, pid.run((gyro.dir - kickdir)/6));
+  //   } else if (ping.value[1] > 85 && ping.value[0] < 60) {
+  //     if(ping.value[2]>100 ||1) //敵陣
+  //       kickdir = 30;
+  //     else
+  //       kickdir = 10;
+  //     motor.cal_power(move.dir, move.speed, pid.run((gyro.dir - kickdir)));
+  //   } else
+  //     motor.cal_power(move.dir, move.speed, pid.run(gyro.dir));
+  // } else {
+  //   motor.cal_power(move.dir, move.speed, pid.run(gyro.dir));
+  // }
+  openmv.getorangeball();
+  if (timer[11].get()<200 && ball.isExist && abs(ball.dir)< 100) {  // ボール捕捉時
+    
+    if(openmv.orangeDetected){
+      kickdir=gyro.dir+openmv.orangedir;
+      if(kickdir>50)kickdir=50;
+      else if(kickdir<-50)kickdir=-50;
+    }
   }
   move.kickdir=kickdir;
+  motor.cal_power(move.dir, move.speed, pid.run(gyro.dir - kickdir)/2);
 
   if (timer[7].get() > 100 && !kick && timer[9].get() > 600 && abs(ball.dir) <15 &&
       abs(gyro.dir - kickdir) < 10 && !WirelessStop) {  //キックする条件
@@ -174,7 +184,7 @@ void loop() {
     kick = 0;
     timer[9].reset();
   }
-  if(abs(gyro.ypr[2]) > 6 || abs(gyro.ypr[1])>10){
+  if(abs(gyro.ypr[2]) > 15 || abs(gyro.ypr[1])>15){
     digitalWrite(13, LOW);
     timer_lift.reset(); //持ち上げ検知タイマーリセット
   }else{
@@ -318,6 +328,7 @@ void sensormonitor() {
       display.setTextColor(SSD1306_WHITE);
       display.setCursor(0, 0);
       display.println(ball.dir);
+      display.println(analogRead(Pin_ballcatch));
       display.setCursor(60, 0);
       display.println((int)ball.distance);
       display.display();
@@ -413,7 +424,18 @@ void sensormonitor() {
         Serial.print(",");
       }
       Serial.println(line.value32[31]);
-      
+
+      for (int i = 0; i < 12; i++) {
+      ESP32_UART.print(line.value_angel[i]);
+      if (i < 12) ESP32_UART.print(",");  // 最後の要素にはカンマを付けない
+      }
+      for(int i=0;i<12;i++){
+        ESP32_UART.print(line.s_angel[i]);
+        if(i < 11) ESP32_UART.print(",");
+      }
+        
+      ESP32_UART.println();  // 改行で1パケット終了
+
       display.setTextSize(1);
       display.setCursor(0, 0);
       display.print(line.value[lp / 4][lp % 4 + 2]);
