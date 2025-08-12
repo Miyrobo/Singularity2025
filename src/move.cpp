@@ -165,7 +165,7 @@ void MOVE::carryball(Sensors& s) {
   }
   int balldir = ball.dir;
   int balldistance = ball.distance;
-  if (balldir <= 10 && balldir >= -10) {
+  if (balldir <= 5 && balldir >= -5) {
     this->dir = 0;
   } else if (balldir <= 15 && balldir >= -15) {
     if (balldir > 0) {
@@ -180,12 +180,14 @@ void MOVE::carryball(Sensors& s) {
       if (balldistance < distance_th) {
         a = 50;
         this->speed = 80;
+        if(ball.distance<200)this->speed = 50;
       } else
         a = 15;
     } else if (balldir <= 60 && balldir >= -60) {
       if (balldistance < distance_th) {
         a = 60;
         this->speed = 80;
+        if(ball.distance<200)this->speed = 50;
       } else
         a = 30;
     } else {

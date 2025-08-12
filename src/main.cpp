@@ -54,7 +54,8 @@ TIMER timer_lift; //持ち上げ検出タイマ
 //========================================================================================================================
 //ここからサッカーメインプログラム
 void loop() {
-  
+  openmv.update();
+
   move.speed = MAX_Speed;
   fps++;
   if(timfps.get()>1000){ //1秒間の処理速度表示
@@ -83,7 +84,18 @@ void loop() {
     pingset.reset();
   }
 
-  ball.get(); //ボール位置取得
+  //ball.get(); //ボール位置取得
+  ColorPos Orange = openmv.getOrange();
+
+  ball.dir=Orange.dir;
+  ball.isExist=Orange.found;
+
+  if(Orange.distance < 45){
+    ball.distance=100;
+  }else{
+    ball.distance=5000;
+  }
+
 
   if (ball.isExist) { //ボール見えた
     move.carryball(sensors);
@@ -159,13 +171,13 @@ void loop() {
   // } else {
   //   motor.cal_power(move.dir, move.speed, pid.run(gyro.dir));
   // }
-  openmv.getorangeball();
+  
+  ColorPos Yellow= openmv.getBlue();
   if (timer[11].get()<200 && ball.isExist && abs(ball.dir)< 100) {  // ボール捕捉時
     
-    if(openmv.orangeDetected){
-      kickdir=gyro.dir+openmv.orangedir;
-      if(kickdir>50)kickdir=50;
-      else if(kickdir<-50)kickdir=-50;
+    if(Yellow.found){
+      kickdir=gyro.dir+Yellow.dir;
+      kickdir=constrain(kickdir,-50,50); //±50の範囲に
     }
   }
   move.kickdir=kickdir;
@@ -608,13 +620,18 @@ void sensormonitor() {
 
       //openmv.set_color(OPENMV_BLUE);
       //display.println(openmv.get_goal());
-      
-      openmv.getorangeball();
-      display.println(openmv.orangeX);
-      display.println(openmv.orangeY);
-      display.print(openmv.orangedir);
+      openmv.update();
+      // ColorPos Yellow = openmv.getYellow();
+      // display.println(Yellow.x);
+      // display.println(Yellow.y);
+      // display.print(Yellow.dir);
+      ColorPos Orange = openmv.getOrange();
+      display.println(Orange.x);
+      display.println(Orange.y);
+      display.print(Orange.dir);
       display.print("  ");
-      display.print(openmv.orangedistance);
+      display.print(Orange.distance);
+      //display.print(openmv.orangedistance);
 
       
       display.display();

@@ -1,4 +1,5 @@
 #include "sensors.h"
+
 #include "Arduino.h"
 #include "EEPROM.h"
 #include "Pins.h"
@@ -138,7 +139,6 @@ void BNO::updateCalibration() {
   bno055.getCalibration(&cal_sys, &cal_gyro, &cal_accel, &cal_mag);
 }
 
-
 //=============================================================================================
 LINE::LINE() {  // 閾値
   for (int i = 0; i < 4; i++) {
@@ -185,7 +185,7 @@ void LINE::get_value() {
       }
     }
   }
-  if(Num_white==0 && !isHalfout)this->time_onLine=millis();
+  if (Num_white == 0 && !isHalfout) this->time_onLine = millis();
   // エンジェル
   for (int i = 0; i < 4; i++) {
     s_angel[(i * 3 + 11) % 12] = s[i][5];
@@ -221,7 +221,7 @@ int LINE::check(Sensors& c_sensors) {
       int diff = ((mem_linedir - sdir + 540) % 360) - 180;
 
       if (abs(diff) > 100 && mem_linedir != 1000) {  // 前回との差が100°以上
-        isHalfout = !isHalfout;  // 半分以上外に出たと判定
+        isHalfout = !isHalfout;                      // 半分以上外に出たと判定
         // tone(buzzer,2000,50);
       }
 
@@ -232,7 +232,7 @@ int LINE::check(Sensors& c_sensors) {
       }
       if (dir > 180) dir -= 360;
       mem_linedir = sdir;
-    } else {  // もっとも広い間隔が4以下
+    } else {                                        // もっとも広い間隔が4以下
       int diff = ((dir - sdir + 540) % 360) - 180;  //
       if (abs(diff) < 90) {
         dir = sdir;
@@ -264,7 +264,8 @@ int LINE::check_angel() {
 
   if (Num_angel > 0 && Num_angel < 12) {
     float angle;
-    findLongestZeroGapWithAngle(s_angel, angle,lmax);  // もっとも広い反応していない間隔を返す
+    findLongestZeroGapWithAngle(s_angel, angle,
+                                lmax);  // もっとも広い反応していない間隔を返す
     rawdir = angle;
   } else {
     rawdir = 1000;
@@ -282,7 +283,6 @@ void LINE::LEDset(int s = -1) {  // ラインのLED操作
   digitalWrite(ledpin, s);
 }
 //---------------------------------------------------------------------------------------------
-
 
 //=============================================================================================
 int ULTRASONIC::get(int n) {
@@ -323,70 +323,51 @@ void TIMER::reset() { s_tim = millis(); }
 
 TIMER openmvtime;
 
-int CAMERA::get_goal() {
-  // if(goal_color == OPENMV_YELLOW){
-  //   OPENMV.write('y');
-  // }else{
-  //   OPENMV.write('b');
-  // }
-  // openmvtime.reset();
-  // while(!Serial.available()){
-  //   if(openmvtime.get()>OPENMV_timeout){
-  //     opp_goal = 1000;
-  //     return 1000;
-  //   }
-  // } // データが来るまで待つ
-
-  // int C=OPENMV.read();
-
-  // if(C==OPENMV_NOTFOUND){
-  //   opp_goal = 1000;
-  // }else{
-  //   opp_goal = C*2;
-  // }
-  // return opp_goal;
-
-  if (OpenMV_UART.available()) {
-    return OpenMV_UART.read();
-  }
-  return -1;
-}
-
-void CAMERA::getorangeball() {
+void CAMERA::update() {
+  // ヘッダ'S'を探す
   while (OpenMV_UART.available()) {
-    char header = OpenMV_UART.read();
-    if (header == 'S') {
-      // 受信待ち
-      while (OpenMV_UART.available() < 2) delay(1);
-      orangeX = OpenMV_UART.read() - 86;
-      orangeY = OpenMV_UART.read() - 60;
-      orangeDetected = true;
-      orangedir = atan2(orangeX, orangeY) * 57.3;
-      orangedistance = sqrt(orangeX * orangeX + orangeY * orangeY);
-      ocount = 0;  // カウントリセット
-      break;       // ループから抜ける
-    } else if (header == 'N') {
-      ocount++;
-      if (ocount < 3) {
-      } else {
-        orangeDetected = false;
-        orangeX = 0;
-        orangeY = 0;
-        orangedir = 1000;
+    if (OpenMV_UART.read() == 'S') {
+      // 6バイト揃うまで待つ
+      while (OpenMV_UART.available() < 6) {
       }
+      uint8_t ox = OpenMV_UART.read();
+      uint8_t oy = OpenMV_UART.read();
+      uint8_t bx = OpenMV_UART.read();
+      uint8_t by = OpenMV_UART.read();
+      uint8_t yx = OpenMV_UART.read();
+      uint8_t yy = OpenMV_UART.read();
 
+      orange = {ox - center_x / 2, oy - center_y / 2, !(ox == 0 && oy == 0)};
+      blue = {bx - center_x / 2, by - center_y / 2, !(bx == 0 && by == 0)};
+      yellow = {yx - center_x / 2, yy - center_y / 2, !(yx == 0 && yy == 0)};
+
+      if (orange.found) {
+        orange.dir = atan2(orange.x, orange.y) * 57.2958f;
+        orange.distance = sqrt(orange.x * orange.x + orange.y * orange.y);
+      }
+      if (blue.found) {
+        blue.dir = atan2(blue.x, blue.y) * 57.2958f;
+        blue.distance = sqrt(blue.x * blue.x + blue.y * blue.y);
+      }
+      if (yellow.found) {
+        yellow.dir = atan2(yellow.x, yellow.y) * 57.2958f;
+        yellow.distance = sqrt(yellow.x * yellow.x + yellow.y * yellow.y);
+      }
       break;
     }
-    // 'S'でも'N'でもないバイトは破棄してループ継続
   }
 }
 
 void CAMERA::set_color(int c) { goal_color = c; }
 
-void CAMERA::setup() { OpenMV_UART.begin(9600); }
+void CAMERA::start() { OpenMV_UART.write('1'); }
 
+void CAMERA::stop() { OpenMV_UART.write('0'); }
 
-
+void CAMERA::setup() {
+  OpenMV_UART.begin(9600);
+  start();
+}
 
 // 最も長い未検出(0)区間の中央角度を返す
 // - centerAngleDeg: 結果格納（°）

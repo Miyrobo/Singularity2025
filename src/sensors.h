@@ -143,29 +143,45 @@ class ULTRASONIC{
 #define OPENMV_YELLOW 0
 #define OPENMV_BLUE 1
 
+struct ColorPos {
+    int x;
+    int y;
+    bool found;
+    int dir;
+    int distance;
+};
+
 class CAMERA{
   public:
     void setup();
-    int get_goal();
-    int get_own();
-    int own_goal;
-    int opp_goal;
     void set_color(int c);
 
-    void getorangeball();
-    int orangeX = -1;  // オレンジ色のx座標
-    int orangeY = -1;  // オレンジ色のy座標
+    void update();
+
+    ColorPos getOrange() const { return orange; }
+    ColorPos getBlue()   const { return blue; }
+    ColorPos getYellow() const { return yellow; }
     int orangedir;
     int orangedistance;
     bool orangeDetected = false; // 検出フラグ
 
     int ocount=0;//見失ってからのカウント
 
+    void start();
+    void stop();
+
   private:
     
     int goal_color;
     int OPENMV_timeout = 100;
     const int OPENMV_NOTFOUND = 255;
+
+    const int center_x = 170;
+    const int center_y = 113;
+
+    ColorPos orange;
+    ColorPos blue;
+    ColorPos yellow;
 };
 
 
