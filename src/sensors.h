@@ -140,8 +140,8 @@ class ULTRASONIC{
 
 // };
 
-#define OPENMV_YELLOW 0
-#define OPENMV_BLUE 1
+#define GOAL_YELLOW 0
+#define GOAL_BLUE 1
 
 struct ColorPos {
     int x;
@@ -161,11 +161,14 @@ class CAMERA{
     ColorPos getOrange() const { return orange; }
     ColorPos getBlue()   const { return blue; }
     ColorPos getYellow() const { return yellow; }
+    
     int orangedir;
     int orangedistance;
     bool orangeDetected = false; // 検出フラグ
 
     int ocount=0;//見失ってからのカウント
+
+    byte Goalcolor;
 
     void start();
     void stop();
@@ -182,6 +185,9 @@ class CAMERA{
     ColorPos orange;
     ColorPos blue;
     ColorPos yellow;
+
+    ColorPos targetgoal; //敵ゴール
+    ColorPos homegoal;  //自ゴール
 };
 
 

@@ -211,7 +211,7 @@ void loop() {
   }
 
 
-  void Wireless_debug();  //ESP32使用 無線デバッグ機能
+  Wireless_debug();  //ESP32使用 無線デバッグ機能
 
   motor.pwm_out(); //モーター出力
 
