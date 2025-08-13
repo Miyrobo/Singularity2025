@@ -225,8 +225,8 @@ void MOVE::avoid_line(const Sensors& s) {  // ライン回避
       speed = 90;
     } else {
       float x, y;
-      x = -sin(radians(line.dir - dir_move)) * speed;  // ラインに垂直な方向
-      y = cos(radians(line.dir - dir_move)) * speed;   //ラインに平行な方向
+      x = -sin(radians(line.dir - dir_move + gyro.dir)) * speed;  // ラインに垂直な方向
+      y = cos(radians(line.dir - dir_move + gyro.dir)) * speed;   //ラインに平行な方向
 
       if (line.lmax >= 8) {
         y = 50.0;

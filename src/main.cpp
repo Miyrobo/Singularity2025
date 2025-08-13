@@ -96,6 +96,7 @@ void loop() {
     ball.distance=5000;
   }
 
+  ball.get();
 
   if (ball.isExist) { //ボール見えた
     move.carryball(sensors);
@@ -172,7 +173,7 @@ void loop() {
   //   motor.cal_power(move.dir, move.speed, pid.run(gyro.dir));
   // }
   
-  ColorPos Yellow= openmv.getBlue();
+  ColorPos Yellow= openmv.getYellow();
   if (timer[11].get()<200 && ball.isExist && abs(ball.dir)< 100) {  // ボール捕捉時
     
     if(Yellow.found){
