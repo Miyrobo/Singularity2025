@@ -2,6 +2,7 @@
 #include "Pins.h"
 #include "Wire.h"
 #include "sensors.h"
+#include "EEPROM.h"
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &DISPLAY_I2C, -1);
 
 void Display_Singularityinit(){
@@ -14,6 +15,23 @@ void Display_Singularityinit(){
   display.setCursor(0, 60);
   display.println("Singularity");
   display.display();
+}
+
+void SETTING::load(){
+  this->goalcolor = EEPROM.read(eeprom_adrs);
+  this->movespeed = EEPROM.read(eeprom_adrs + 1);
+  this->usecamera = EEPROM.read(eeprom_adrs + 2);
+  this->balltype  = EEPROM.read(eeprom_adrs + 3);
+}
+
+void SETTING::save(){
+  if(eeprom_count<50){ //書き込み過多防止
+    EEPROM.write(eeprom_adrs,this->goalcolor);
+    EEPROM.write(eeprom_adrs+1,this->movespeed);
+    EEPROM.write(eeprom_adrs+2,this->usecamera);
+    EEPROM.write(eeprom_adrs+3,this->balltype);
+    eeprom_count++;
+  }
 }
 
 TIMER tim;

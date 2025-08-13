@@ -4,7 +4,7 @@
 #include <game.h>
 #include <instance.h>
 
-#define MAX_Speed 90
+#define MAX_Speed 100
 
 int WirelessControl=0;
 
@@ -22,6 +22,7 @@ void Wireless_debug(); //無線デバッグ
 
 void setup() {
   pins_init(); //ピン設定
+  mysetting.load(); //設定読み込み
 
   tone(buzzer, 2714, 120);
   openmv.setup();
@@ -35,11 +36,14 @@ void setup() {
   motor.pwm_out();
   gyro.setup();
   
-  //EEPROM.write(34, 100); //ホールドセンサ閾値
+  //EEPROM.write(34, 85); //ホールドセンサ閾値
   hold_th = EEPROM.read(34);
 
   timer[0].reset();
-  if(SW1)dinogame();
+  if(SW1){
+    tone(buzzer,2000,100); //恐竜ゲーム起動
+    dinogame();
+  }
   
   Startup_sound(); //起動音
   
@@ -56,7 +60,7 @@ TIMER timer_lift; //持ち上げ検出タイマ
 void loop() {
   openmv.update();
 
-  move.speed = MAX_Speed;
+  move.speed = mysetting.movespeed;
   fps++;
   if(timfps.get()>1000){ //1秒間の処理速度表示
     display.clearDisplay();
@@ -84,19 +88,21 @@ void loop() {
     pingset.reset();
   }
 
-  //ball.get(); //ボール位置取得
-  ColorPos Orange = openmv.getOrange();
-
-  ball.dir=Orange.dir;
-  ball.isExist=Orange.found;
-
-  if(Orange.distance < 45){
-    ball.distance=100;
+  if(mysetting.balltype == BALL_IS_IR){ //ボールモード
+    ball.get(); //ボール位置取得
   }else{
-    ball.distance=5000;
-  }
+     ColorPos Orange = openmv.getOrange();
 
-  ball.get();
+      ball.dir=Orange.dir;
+      ball.isExist=Orange.found;
+
+      if(Orange.distance < 45){
+        ball.distance=100;
+      }else{
+        ball.distance=5000;
+      }
+  }
+  
 
   if (ball.isExist) { //ボール見えた
     move.carryball(sensors);
@@ -172,16 +178,21 @@ void loop() {
   // } else {
   //   motor.cal_power(move.dir, move.speed, pid.run(gyro.dir));
   // }
-  
-  ColorPos Yellow= openmv.getYellow();
-  if (timer[11].get()<200 && ball.isExist && abs(ball.dir)< 100) {  // ボール捕捉時
+
+  if(mysetting.usecamera){
+    ColorPos Yellow= openmv.getYellow();
+    if (timer[11].get()<200 && ball.isExist && abs(ball.dir)< 100) {  // ボール捕捉時
     
-    if(Yellow.found){
-      kickdir=gyro.dir+Yellow.dir;
-      kickdir=constrain(kickdir,-50,50); //±50の範囲に
+      if(Yellow.found){
+        kickdir=gyro.dir+Yellow.dir;
+        kickdir=constrain(kickdir,-50,50); //±50の範囲に
+      }
     }
   }
+  
   move.kickdir=kickdir;
+
+  if(move.speed>mysetting.movespeed)move.speed=mysetting.movespeed;
   motor.cal_power(move.dir, move.speed, pid.run(gyro.dir - kickdir)/2);
 
   if (timer[7].get() > 100 && !kick && timer[9].get() > 600 && abs(ball.dir) <15 &&
@@ -282,8 +293,137 @@ void Wireless_debug(){
 
 #define MODE_MAX 5
 
+void sensormonitor(){
+  if(!TS){
+    //センサモニタ開始処理
+    int mode=0;
+    int setting_menu=0;
+    while(!TS){
+      motor.brake=false;
+      motor.stop();
+      motor.pwm_out();
+      kicker(0);
+      int cx,cy;
+      if(mode==0){ //待機モード
+        display.clearDisplay();
+        display.setTextSize(2);
+        display.setRotation(1); //縦表示
+
+        //ボールモニタ
+        if(mysetting.balltype==BALL_IS_IR){
+          ball.get();
+          display.setTextSize(1);
+          display.setCursor(50,5);
+          display.print("IR");
+        }else{
+          openmv.update();
+          ColorPos orange = openmv.getOrange();
+          ball.dir=orange.dir;
+          ball.isExist = orange.found;
+          display.setTextSize(1);
+          display.setCursor(50,5);
+          display.print("Or");
+        }
+        cx=20,cy=40;
+        display.drawCircle(cx,cy,15,SSD1306_WHITE);
+        display.drawLine(cx-17,cy,cx+17,cy,SSD1306_WHITE);
+        display.drawLine(cx,cy-17,cx,cy+17,SSD1306_WHITE);
+        if(ball.isExist){
+          display.drawLine(cx,cy,cx + sin(radians(ball.dir))*17,cy - cos(radians(ball.dir))*17,SSD1306_WHITE);
+          display.fillCircle(cx + sin(radians(ball.dir))*17,cy - cos(radians(ball.dir))*17,3,SSD1306_WHITE);
+        }
+
+        //方位モニタ
+        gyro.get();
+        cx=45,cy=70;
+        display.drawCircle(cx,cy,15,SSD1306_WHITE);
+        display.drawLine(cx,cy,cx + sin(radians(-gyro.dir))*17,cy - cos(radians(-gyro.dir))*17,SSD1306_WHITE);
+
+        //キャリブレーション状態チェック
+        gyro.updateCalibration();
+        display.setCursor(35,115);
+        if(gyro.cal_gyro!=3)display.print("G");
+        display.setCursor(50,115);
+        if(gyro.cal_mag!=3)display.print("M");
+
+        display.display();
+
+        if (sw3.pushed()) {
+          tone(buzzer, 1500, 100);
+          gyro.reset();
+        }
+
+        if (sw1.pushed()) {
+          tone(buzzer, 2000, 100);
+          mode = 1; //設定モード移行
+          setting_menu = 0;
+        }
+      }else if(mode==1){ //設定モード
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setRotation(1); //縦表示
+
+        display.setCursor(0,5);
+        display.print("setting");
+
+        display.setCursor(0,40);
+        display.print("ball:");
+        if(mysetting.balltype == BALL_IS_IR) display.print("IR");
+        else display.print("color");
+        if(setting_menu==0){
+          display.print("<-");
+          if(sw2.pushed()){
+            tone(buzzer,2500,100);
+            mysetting.balltype = !mysetting.balltype;
+          }
+        }
+  
+        display.setCursor(0,60);
+        display.print("speed:");
+        display.print(mysetting.movespeed);
+        if(setting_menu==1){
+          display.print("<-");
+          if(sw2.pushed()){
+            tone(buzzer,2500,100);
+            mysetting.movespeed = mysetting.movespeed+10;
+            if(mysetting.movespeed>100)mysetting.movespeed=50;
+          }
+        }
+
+        display.setCursor(0,80);
+        display.print("camera:");
+        if(mysetting.usecamera) display.print("ON");
+        else display.print("OFF");
+        if(setting_menu==2){
+          display.print("<-");
+          if(sw2.pushed()){
+            tone(buzzer,2500,100);
+            mysetting.usecamera = !mysetting.usecamera;
+          }
+        }
+
+
+        display.display();
+
+        if(sw1.pushed()){
+          tone(buzzer, 1700, 100);
+          setting_menu++;
+          if(setting_menu>=3)setting_menu=0;
+        }
+        if(sw3.pushed()){
+          tone(buzzer, 2000, 100);
+          mode = 0;
+          mysetting.save();
+        }
+      }//mode分岐
+    }
+    //センサモニタ終了処理
+  }
+  
+}
+
 int lp = 0;
-void sensormonitor() {
+void sensormonitor_old() {
   display.setTextSize(2);
   if(!TS){
   while (!TS) {

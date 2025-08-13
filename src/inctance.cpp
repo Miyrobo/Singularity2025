@@ -21,3 +21,5 @@ TIMER pingset;
 //ロボットの状態をまとめる構造体
 Sensors sensors{ball, gyro, ping, openmv, line};
 Actuator act{motor, move, pid};
+
+SETTING mysetting;

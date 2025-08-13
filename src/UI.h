@@ -17,6 +17,23 @@ void Display_Singularityinit();
 
 void Startup_sound(); //起動音
 
+//ユーザー設定
+#define BALL_IS_ORANGE 0
+#define BALL_IS_IR 1
+class SETTING{
+  public:
+    void load();
+    void save();
+
+    u_int8_t goalcolor;
+    u_int8_t movespeed;
+    u_int8_t usecamera;
+    u_int8_t balltype;
+  private:
+    const int eeprom_adrs=40;
+    int eeprom_count=0;
+};
+
 // 押しボタン用クラス
 class PUSHSWITCH {
 private:
