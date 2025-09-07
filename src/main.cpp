@@ -34,6 +34,8 @@ void Wireless_debug(); //無線デバッグ
 
 int mapJoystick(int val);
 
+bool keepermode_now=1;
+int balldir_r;
 
 //------------------------
 // PID用変数
@@ -312,6 +314,72 @@ void loop() {
   } else {
     
   }
+
+  //------------------------------------------
+
+  //キーパー
+  if(keepermode_now){
+  Yellow= openmv.getYellow();
+  if(!line.isHalfout && line.Num_angel<1){ //ペナルティエリア外
+    if(Yellow.found && abs(Yellow.dir)>90){
+      move.dir=Yellow.dir;
+    }else{
+      int pingdiff = ping.value[0]-ping.value[1]; //右に行くほど+
+      move.speed = 80;
+      if(pingdiff > 20){
+        move.dir = -135;
+      }else if(pingdiff < -20){
+        move.dir = 135;
+      }else{
+        move.dir=180;
+      }
+    }
+  }else{ //
+    int xx=0,yy=0;
+    //yy フィールドに戻る強さ
+    if(line.Num_angel<1){ //完全に押し出された  
+      move.dir=line.dir;
+      move.speed=80;
+    }else {
+      if(line.lmax >= 9){
+        if(line.isHalfout) yy=50;
+        else yy=-50;
+      }else if(line.lmax >= 6){
+        if(line.isHalfout) yy=20;
+        else yy=-20;
+      }
+      if(ball.isExist){
+        xx=sin(radians(ball.dir - line.dir))*150;
+        if(line.dir>75 && ball.dir>0)xx=0;
+        else if(line.dir<-75 && ball.dir<0)xx=0;
+      }
+      move.dir=atan2(xx,yy)*57.3 + line.dir;
+      move.speed=sqrt(xx*xx + yy*yy);
+    }
+      
+  }
+  PID=pid.run(gyro.dir - kickdir, gyro.dir);//pid.run(gyro.dir - kickdir,gyro.vel);
+  if(abs(gyro.dir)<5 || (abs(gyro.dir)<abs(kickdir) && gyro.dir*kickdir>=0))
+  if(timer[14].get()<750)PID=PID/2.5;
+  motor.cal_power(move.dir, move.speed, PID);
+  if(abs(balldir_r-ball.dir)>10){
+    timer[16].reset();
+    balldir_r=ball.dir;
+  }
+  if(ball.isExist && timer[16].get()>2000 && ball.distance<3400 && abs(ball.dir)<40){
+    keepermode_now=0;
+    timer[16].reset();
+  }
+  }else{ //keepermode_now==0
+    if(timer[16].get()>1000){
+      keepermode_now=1;
+      timer[16].reset();
+    }
+  }
+  
+  //------------------------------------------
+  
+
 
 
   //Wireless_debug();  //ESP32使用 無線デバッグ機能
