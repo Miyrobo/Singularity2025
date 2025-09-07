@@ -25,4 +25,8 @@ extern TIMER pingset;
 extern Sensors sensors;
 extern Actuator act;
 
+extern SETTING mysetting;
+
+extern NeoPixel ledring;
+
 #endif

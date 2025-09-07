@@ -35,7 +35,7 @@ void BALL::get() {  // ボールの位置取得
     } else {
       digitalWrite(Pin_MUX1, 0);
     }
-    // delayMicroseconds(1);
+    //delayMicroseconds(10);
     value[i] = analogRead(Pin_Ball1);
     total += 1023 - value[i];
     value[i + 8] = analogRead(Pin_Ball2);
@@ -120,14 +120,46 @@ void BNO::setup() {
 //---------------------------------------------------------------------------------------------
 void BNO::get() {
   imu::Vector<3> euler = bno055.getVector(Adafruit_BNO055::VECTOR_EULER);
+  //imu::Vector<3> gyro = bno055.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
+  
   ypr[0] = euler.x();
   ypr[1] = euler.y();
   ypr[2] = euler.z();
+  //vel=-gyro.z();
   dir = ypr[0] - dir0;
   if (dir > 180)
     dir -= 360;
   else if (dir < -179)
     dir += 360;
+}
+void BNO::getvel(){
+  imu::Vector<3> accel = bno055.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+
+  
+  // 前回からの経過時間を計算
+  static unsigned long lastTime = millis();
+  unsigned long now = millis();
+  float dt = (now - lastTime) / 1000.0f; // [s]
+  lastTime = now;
+
+  // 加速度をメンバ変数に格納
+  ax = accel.x();  
+  ay = accel.y();
+
+  if(abs(ax)<0.05)ax=0;
+  if(abs(ay)<0.05)ay=0;
+
+  // 積分して速度を更新
+  vx -= ax * dt;
+  vy -= ay * dt;
+
+  // ドリフト対策（ほんの少し減衰をかける）
+  //if(abs(ax)<0.1)
+    vx *= 0.98;
+  //if(abs(ay)<0.1)
+    vy *= 0.98;
+
+
 }
 //---------------------------------------------------------------------------------------------
 void BNO::reset() {  // 攻め方向リセット
@@ -166,11 +198,12 @@ void LINE::get_value() {
     } else {
       digitalWrite(Pin_MUX1, 0);
     }
-    delayMicroseconds(1);
-    value32[i] = analogRead(Pin_Line1);
-    value32[i + 8] = analogRead(Pin_Line2);
-    value32[i + 16] = analogRead(Pin_Line3);
-    value32[i + 24] = analogRead(Pin_Line4);
+    //delayMicroseconds(10);
+    float rate=0.0;
+    value32[i] = value32[i]*rate+(1-rate)*analogRead(Pin_Line1);
+    value32[i + 8] = value32[i + 8]*rate+(1-rate)*analogRead(Pin_Line2);
+    value32[i + 16] = value32[i + 16]*rate+(1-rate)*analogRead(Pin_Line3);
+    value32[i + 24] = value32[i + 24]*rate+(1-rate)*analogRead(Pin_Line4);
     // delayMicroseconds(1);
   }
   Num_white = 0;
