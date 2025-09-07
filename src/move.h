@@ -32,15 +32,28 @@ class MOVE {
   void carryball(int balldir,int balldistance);
   void carryball(Sensors& s);
   void avoid_line(const Sensors& s); //ラインの回避行動
+
+  int toGoalPING(const Sensors& s);
  private:
 };
 
 class PID{
  public:
+  int run(double target,double value);  // 姿勢制御
   int run(double a);  // 姿勢制御
+  // int run(double a,double vel);  // 姿勢制御
   double stack = 0.0;  //積分量
+
+  void setgain(float newKp,float newKi,float newKd){
+    if(newKp>0)this->Kp=newKp;
+    if(newKi>0)this->Ki=newKi;
+    if(newKd>0)this->Kd=newKd;
+  }
+  float Kp = 1.5, Ki = 1.0, Kd = 1.0;  // PID制御係数
+  double get_v(){return v;}
+  double P,I,D;
  private:
-  float Kp = 2.0, Ki = 0.0, Kd = 1.0;  // PID制御係数
+  
   double b; //前回の値
   double da;  //変化量
   double v; //時間変化率

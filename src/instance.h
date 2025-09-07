@@ -27,4 +27,6 @@ extern Actuator act;
 
 extern SETTING mysetting;
 
+extern NeoPixel ledring;
+
 #endif

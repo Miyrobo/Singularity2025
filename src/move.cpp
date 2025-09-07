@@ -311,6 +311,65 @@ void MOVE::avoid_line(const Sensors& s) {  // ライン回避
   this->speed = speed;
 }
 
+TIMER timer0;
+
+int MOVE::toGoalPING(const Sensors& s){
+  LINE& line = s.line;
+  BALL& ball = s.ball;
+  ULTRASONIC& ping = s.ping;
+  int kickdir = 0;
+  if (timer0.get() < 100000 && ball.isExist && abs(ball.dir)< 60 && line.Num_white==0) {  // ボール捕捉時
+    if (ping.value[1] < 60 && ping.value[0] > 85) {        // ゴールは左  
+      if(ping.value[2]>100 ||1) //敵陣
+      kickdir = -30;
+      else
+        kickdir = -10;
+    } else if (ping.value[1] > 85 && ping.value[0] < 60) {
+      if(ping.value[2]>100 ||1) //敵陣
+        kickdir = 30;
+      else
+        kickdir = 10;
+    } else{
+
+    }
+  } else {
+  }
+  return kickdir;
+}
+
+int PID::run(double target,double value){
+  if (target > 0) {
+    if (sign == -1) stack = 0;
+    sign = 1;
+  } else if (target < 0) {
+    if (sign == 1) stack = 0;
+    sign = -1;
+  }
+  t1 = micros();
+  dt = t1 - t0;
+  if (dt >= 5000) {  // 5msごと
+    t0 = t1;
+    da = value - b;                                   // 今回-前回
+    b = value;                                        // 前回の値
+    if (abs(target) < 30) {                            // 偏差が小さいときのみ積分
+      stack += Ki * target * (double)dt / 1000 / 100;  // Iのみ先に係数をかける
+    }
+    const double alpha = 0.0;  // 0.0～1.0
+    
+    double new_v = da / (double)dt * 1000.0 * 100.0;  // 微分
+
+    v = v*alpha + (1-alpha)*new_v;
+  }
+
+  if (stack > 50.0)
+    stack = 50.0;
+  else if (stack < -50.0)
+    stack = -50.0;
+  if (abs(target) <= 0.2) stack = 0.0;  // 小さすぎる偏差は無視
+  P=Kp * target;I=stack;D=Kd*v;
+  return -(Kp * target + stack + Kd * v);
+}
+
 int PID::run(double a) {
   if (a > 0) {
     if (sign == -1) stack = 0;
@@ -328,15 +387,52 @@ int PID::run(double a) {
     if (abs(a) < 30) {                            // 偏差が小さいときのみ積分
       stack += Ki * a * (double)dt / 1000 / 100;  // Iのみ先に係数をかける
     }
-    v = da / (double)dt * 1000 * 100;  // 微分
+    const double alpha = 0.0;  // 0.0～1.0
+    
+    double new_v = da / (double)dt * 1000.0 * 100.0;  // 微分
+
+    v = v*alpha + (1-alpha)*new_v;
   }
 
   if (stack > 50.0)
     stack = 50.0;
   else if (stack < -50.0)
     stack = -50.0;
-  if (abs(a) < 0.5) stack = 0.0;  // 小さすぎる偏差は無視
+  if (abs(a) <= 0.2) stack = 0.0;  // 小さすぎる偏差は無視
+  P=Kp * a;I=stack;D=Kd*v;
   return -(Kp * a + stack + Kd * v);
 }
+
+// int PID::run(double a,double vel) {
+//   if (a > 0) {
+//     if (sign == -1) stack = 0;
+//     sign = 1;
+//   } else if (a < 0) {
+//     if (sign == 1) stack = 0;
+//     sign = -1;
+//   }
+//   t1 = micros();
+//   dt = t1 - t0;
+//   if (dt >= 5000) {  // 5msごと
+//     t0 = t1;
+//     da = a - b;                                   // 今回-前回
+//     b = a;                                        // 前回の値
+//     if (abs(a) < 30) {                            // 偏差が小さいときのみ積分
+//       stack += Ki * a * (double)dt / 1000 / 100;  // Iのみ先に係数をかける
+//     }
+//     const double alpha = 0;  // 0.0～1.0
+    
+
+//   }
+//   v=vel/10.0;
+
+//   if (stack > 50.0)
+//     stack = 50.0;
+//   else if (stack < -50.0)
+//     stack = -50.0;
+//   if (abs(a) <= 0.2) stack = 0.0;  // 小さすぎる偏差は無視
+//   P=Kp * a;I=stack;D=Kd*v;
+//   return -(Kp * a + stack + Kd * v);
+// }
 
 void kicker(bool out) { digitalWrite(Pin_kicker, out); }

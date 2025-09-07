@@ -29,6 +29,8 @@ class SETTING{
     u_int8_t movespeed;
     u_int8_t usecamera;
     u_int8_t balltype;
+    u_int8_t useuss;
+    u_int8_t neopixel;
   private:
     const int eeprom_adrs=40;
     int eeprom_count=0;
@@ -53,5 +55,42 @@ public:
   bool read();    // 安定化された現在の状態を返す
   bool pushed();  // 押された瞬間（エッジ）を検出
 };
+
+#include <FastLED.h>
+
+#define NUM_LEDS 12   // LEDの数
+#define LED_PIN  25   // ピン番号固定
+#define BRIGHTNESS  15
+
+#define NeoPixel_ON 0
+#define NeoPixel_OFF 1
+#define NeoPixel_Auto 2
+
+class NeoPixel {
+public:
+  NeoPixel(int numLeds = NUM_LEDS, uint8_t brightness = BRIGHTNESS);
+
+  void begin();             // 初期化
+  void update();            // アニメーション更新
+  void setColorAll(CRGB color);// 全部同じ色にする
+  void rainbow();           // レインボーパターン
+  void clear();             // 消灯
+
+  void show();
+
+  void setLedDirection(int dir, int n, CRGB color);
+
+  CRGB* LEDs = new CRGB[NUM_LEDS];
+
+private:
+  int _numLeds;
+  uint8_t _brightness;
+  CRGB* _leds;
+  unsigned long _lastUpdate;
+  int _hue;
+
+  int r=0;
+};
+
 
 #endif

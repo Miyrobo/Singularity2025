@@ -23,3 +23,5 @@ Sensors sensors{ball, gyro, ping, openmv, line};
 Actuator act{motor, move, pid};
 
 SETTING mysetting;
+
+NeoPixel ledring;

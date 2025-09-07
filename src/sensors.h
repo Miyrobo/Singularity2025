@@ -54,7 +54,7 @@ class BALL {
   int total; //合計
  private:
   const byte pin[NUM_balls] = {Pin_Ball1,Pin_Ball2};  //ピン番号
-  const int _th = 800;      //反応限界
+  const int _th = 900;      //反応限界
 };
 
 class LINE {
@@ -103,10 +103,14 @@ class LINE {
 class BNO {
  public:
   double ypr[3];
+  double ax,ay;
+  double vx,vy;
   void setup();
   void get();
   void reset();
   double dir;
+  void getvel();
+  double vel;//角速度
 
   //キャリブレーション値の確認
   void updateCalibration();
